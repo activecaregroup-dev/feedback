@@ -19,18 +19,20 @@ export async function GET() {
        FROM ${CN}.PATIENT p
        JOIN ${CN}.WARDSTAY ws
          ON ws.PATIENT_ID = p.PATIENT_ID
-       JOIN ${FB}.PATIENT_ASSIGNMENTS pa
-         ON pa.PATIENT_ID = p.PATIENT_ID
+       JOIN ${FB}.SITES s
+         ON ARRAY_CONTAINS(ws.LOCATION_ID::VARIANT, s.CARENOTES_LOCATION_IDS)
+       LEFT JOIN ${FB}.PATIENT_ASSIGNMENTS pa
+         ON pa.PATIENT_ID = p.PATIENT_ID AND pa.IS_ACTIVE = TRUE
        WHERE ws.ACTUAL_END_DTTM IS NULL
-         AND pa.USER_ID = ?
-         AND pa.IS_ACTIVE = TRUE
+         AND s.SITE_ID = ?
+         AND pa.PATIENT_ID IS NULL
        ORDER BY p.PATIENT_NAME`,
-      [session.user.id]
+      [session.user.siteId]
     );
 
     return NextResponse.json(rows);
   } catch (err) {
-    console.error('[/api/patients]', err);
+    console.error('[/api/patients/unassigned]', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

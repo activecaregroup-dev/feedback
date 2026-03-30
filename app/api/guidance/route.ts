@@ -11,18 +11,18 @@ export async function GET(request: Request) {
   if (!stageId) return NextResponse.json({ error: 'stageId required' }, { status: 400 });
 
   const [prompts, checklist] = await Promise.all([
-    query<{ PROMPT_ID: number; PROMPT_TEXT: string; DISPLAY_ORDER: number }>(
-      `SELECT PROMPT_ID, PROMPT_TEXT, DISPLAY_ORDER
+    query<{ PROMPT_ID: number; THEME: string; PROMPT_TEXT: string; PROMPT_ORDER: number }>(
+      `SELECT PROMPT_ID, THEME, PROMPT_TEXT, PROMPT_ORDER
        FROM CONVERSATION_PROMPTS
        WHERE STAGE_ID = ?
-       ORDER BY DISPLAY_ORDER`,
+       ORDER BY PROMPT_ORDER`,
       [stageId]
     ),
-    query<{ ITEM_ID: number; ITEM_TEXT: string; DISPLAY_ORDER: number }>(
-      `SELECT ITEM_ID, ITEM_TEXT, DISPLAY_ORDER
+    query<{ ITEM_ID: number; ITEM_TEXT: string; ITEM_ORDER: number }>(
+      `SELECT ITEM_ID, ITEM_TEXT, ITEM_ORDER
        FROM CHECKLIST_ITEMS
        WHERE STAGE_ID = ?
-       ORDER BY DISPLAY_ORDER`,
+       ORDER BY ITEM_ORDER`,
       [stageId]
     ),
   ]);

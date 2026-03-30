@@ -7,14 +7,14 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
   const body = await request.json();
-  const { patientId, stageId, attendees, checklistResponses, questionResponses, comments, actions } = body;
+  const { patientId, patientName, stageId, whoPresent, checklistResponses, questionResponses, comments, actions } = body;
 
-  // Insert session
+  // Insert session and retrieve the generated SESSION_ID
   const sessionRows = await query<{ SESSION_ID: number }>(
-    `INSERT INTO SESSIONS (PATIENT_ID, STAGE_ID, CONDUCTED_BY, SITE_ID, ATTENDEES, CREATED_AT)
-     VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP())
+    `INSERT INTO SESSIONS (PATIENT_ID, PATIENT_NAME, STAGE_ID, USER_ID, SITE_ID, STATUS, WHO_PRESENT, STARTED_AT)
+     VALUES (?, ?, ?, ?, ?, 'COMPLETED', ?, CURRENT_TIMESTAMP())
      RETURNING SESSION_ID`,
-    [patientId, stageId, session.user.id, session.user.siteId, attendees]
+    [patientId, patientName, stageId, session.user.id, session.user.siteId, whoPresent]
   );
 
   const sessionId = sessionRows[0].SESSION_ID;
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   if (checklistResponses?.length) {
     for (const r of checklistResponses) {
       await query(
-        `INSERT INTO CHECKLIST_RESPONSES (SESSION_ID, ITEM_ID, CHECKED) VALUES (?, ?, ?)`,
+        `INSERT INTO CHECKLIST_RESPONSES (SESSION_ID, ITEM_ID, IS_CHECKED, CREATED_AT) VALUES (?, ?, ?, CURRENT_TIMESTAMP())`,
         [sessionId, r.itemId, r.checked]
       );
     }
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   if (questionResponses?.length) {
     for (const r of questionResponses) {
       await query(
-        `INSERT INTO QUESTION_RESPONSES (SESSION_ID, QUESTION_ID, SCORE) VALUES (?, ?, ?)`,
+        `INSERT INTO QUESTION_RESPONSES (SESSION_ID, QUESTION_ID, SCORE, CREATED_AT) VALUES (?, ?, ?, CURRENT_TIMESTAMP())`,
         [sessionId, r.questionId, r.score]
       );
     }
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   // Comments
   if (comments?.trim()) {
     await query(
-      `INSERT INTO COMMENTS (SESSION_ID, COMMENT_TEXT) VALUES (?, ?)`,
+      `INSERT INTO COMMENTS (SESSION_ID, COMMENT_TEXT, CREATED_AT) VALUES (?, ?, CURRENT_TIMESTAMP())`,
       [sessionId, comments.trim()]
     );
   }
@@ -51,8 +51,8 @@ export async function POST(request: Request) {
   if (actions?.length) {
     for (const a of actions) {
       await query(
-        `INSERT INTO ACTIONS (SESSION_ID, ACTION_TEXT, ASSIGNED_TO, DUE_DATE) VALUES (?, ?, ?, ?)`,
-        [sessionId, a.text, a.assignedTo ?? null, a.dueDate ?? null]
+        `INSERT INTO ACTIONS (SESSION_ID, USER_ID, PATIENT_ID, ACTION_TEXT, STATUS, CREATED_AT) VALUES (?, ?, ?, ?, 'OPEN', CURRENT_TIMESTAMP())`,
+        [sessionId, session.user.id, patientId, a.text]
       );
     }
   }

@@ -1,6 +1,5 @@
 import NextAuth from 'next-auth';
-import MicrosoftEntraID from 'next-auth/providers/microsoft-entra-id';
-import Credentials from 'next-auth/providers/credentials';
+import { authConfig } from '@/auth.config';
 import { query } from '@/lib/snowflake';
 
 export interface AppUser {
@@ -29,23 +28,7 @@ const DEV_USER: AppUser = {
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [
-    MicrosoftEntraID({
-      clientId: process.env.AZURE_AD_CLIENT_ID!,
-      clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
-      tenantId: process.env.AZURE_AD_TENANT_ID!,
-    }),
-    // TODO: remove before go-live
-    Credentials({
-      credentials: { password: {} },
-      authorize(credentials) {
-        if (credentials.password === 'dev2026') {
-          return { id: DEV_USER.id, name: DEV_USER.name, email: DEV_USER.email };
-        }
-        return null;
-      },
-    }),
-  ],
+  ...authConfig,
   callbacks: {
     async jwt({ token, account, profile, user }) {
       if (account?.provider === 'credentials' && user) {
@@ -72,10 +55,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         SITE_ID: number;
         SITE_NAME: string;
       }>(
-        `SELECT u.USER_ID, u.DISPLAY_NAME, u.SITE_ID, s.NAME AS SITE_NAME
+        `SELECT u.USER_ID, u.DISPLAY_NAME, u.SITE_ID, s.SITE_NAME
          FROM USERS u
          JOIN SITES s ON s.SITE_ID = u.SITE_ID
-         WHERE u.AZURE_OID = ?
+         WHERE u.AZURE_AD_OID = ?
          LIMIT 1`,
         [oid]
       );

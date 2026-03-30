@@ -2,58 +2,87 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { STAGE_CONFIG, STAGE_ORDERS } from '@/lib/stage-config';
+import { CheckCircle, AlertTriangle, MessageSquare } from 'lucide-react';
 
 interface Patient {
   PATIENT_ID: number;
-  FULL_NAME: string;
+  PATIENT_NAME: string;
   DATE_OF_BIRTH: string;
-  WARD: string;
-  BED: string;
-}
-
-interface Stage {
-  STAGE_ID: number;
-  NAME: string;
-  DISPLAY_ORDER: number;
 }
 
 interface Action {
   ACTION_ID: number;
-  SESSION_ID: number;
   ACTION_TEXT: string;
-  ASSIGNED_TO: string;
-  DUE_DATE: string;
-  PATIENT_FULL_NAME: string;
+  STATUS: string;
+  PATIENT_NAME: string;
 }
+
+interface DueItem {
+  PATIENT_ID: number;
+  PATIENT_NAME: string;
+  NEXT_STAGE_ID: number;
+  NEXT_STAGE_NAME: string;
+  NEXT_STAGE_ORDER: number;
+}
+
+interface FlaggedItem {
+  PATIENT_ID: number;
+  PATIENT_NAME: string;
+  QUESTION_TEXT: string;
+  STAGE_NAME: string;
+  SCORE: number;
+}
+
+const BORDER = '1px solid #1e1e2a';
+const CARD_BG = '#141419';
+const ACCENT = '#ff6b2b';
+const SECONDARY = '#8a8a9a';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [stages, setStages] = useState<Stage[]>([]);
   const [actions, setActions] = useState<Action[]>([]);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [due, setDue] = useState<DueItem[]>([]);
+  const [flagged, setFlagged] = useState<FlaggedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [stageFilter, setStageFilter] = useState<number | null>(null);
   const [completing, setCompleting] = useState<number | null>(null);
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/patients').then((r) => r.json()),
-      fetch('/api/stages').then((r) => r.json()),
-      fetch('/api/actions').then((r) => r.json()),
-    ]).then(([p, s, a]) => {
-      setPatients(p);
-      setStages(s);
-      setActions(a);
-      setLoading(false);
-    });
-  }, []);
+    async function load() {
+      try {
+        const [pr, ar, dr, fr] = await Promise.all([
+          fetch('/api/patients'),
+          fetch('/api/actions'),
+          fetch('/api/dashboard/due'),
+          fetch('/api/dashboard/flagged'),
+        ]);
 
-  function handleStartSession(stageId: number) {
-    if (!selectedPatient) return;
-    router.push(
-      `/session/guidance?patientId=${selectedPatient.PATIENT_ID}&stageId=${stageId}&patientName=${encodeURIComponent(selectedPatient.FULL_NAME)}`
-    );
-  }
+        if (!pr.ok || !ar.ok || !dr.ok || !fr.ok) {
+          const failed = [
+            !pr.ok && 'patients',
+            !ar.ok && 'actions',
+            !dr.ok && 'due',
+            !fr.ok && 'flagged',
+          ].filter(Boolean).join(', ');
+          throw new Error(`Failed to load: ${failed}`);
+        }
+
+        const [p, a, d, f] = await Promise.all([pr.json(), ar.json(), dr.json(), fr.json()]);
+        setPatients(Array.isArray(p) ? p : []);
+        setActions(Array.isArray(a) ? a : []);
+        setDue(Array.isArray(d) ? d : []);
+        setFlagged(Array.isArray(f) ? f : []);
+      } catch (err) {
+        setLoadError(err instanceof Error ? err.message : 'Failed to load dashboard');
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
 
   async function completeAction(actionId: number) {
     setCompleting(actionId);
@@ -66,92 +95,239 @@ export default function DashboardPage() {
     setCompleting(null);
   }
 
+  // Figure out next due stage order per patient (for card badge + filter)
+  const dueStageByPatient = new Map(
+    due.map((d) => [d.PATIENT_ID, d.NEXT_STAGE_ORDER])
+  );
+
+  const filteredPatients = stageFilter === null
+    ? patients
+    : patients.filter((p) => dueStageByPatient.get(p.PATIENT_ID) === stageFilter);
+
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-gray-500">Loading…</p>
+      <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#0a0a0f' }}>
+        <p style={{ color: SECONDARY }}>Loading...</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#0a0a0f' }}>
+        <div className="space-y-2 text-center">
+          <p className="font-medium" style={{ color: ACCENT }}>Failed to load dashboard</p>
+          <p className="text-sm" style={{ color: SECONDARY }}>{loadError}</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8 p-6">
-      <h1 className="text-2xl font-semibold">Dashboard</h1>
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: '#0a0a0f' }}>
 
-      {/* Patient selection */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-medium">Select patient</h2>
-        <div className="space-y-2">
-          {patients.length === 0 && (
-            <p className="text-sm text-gray-500">No active patients found for your site.</p>
-          )}
-          {patients.map((p) => (
-            <button
-              key={p.PATIENT_ID}
-              onClick={() => setSelectedPatient(p)}
-              className={`w-full rounded-xl border px-5 py-4 text-left transition-colors ${
-                selectedPatient?.PATIENT_ID === p.PATIENT_ID
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 bg-white hover:bg-gray-50'
-              }`}
-            >
-              <p className="font-medium">{p.FULL_NAME}</p>
-              <p className="text-sm text-gray-500">
-                {p.WARD} · Bed {p.BED}
-              </p>
-            </button>
-          ))}
-        </div>
-      </section>
+      {/* Left: patient grid */}
+      <div className="flex flex-1 flex-col overflow-hidden" style={{ borderRight: BORDER }}>
 
-      {/* Stage selection — only shown when a patient is selected */}
-      {selectedPatient && (
-        <section className="space-y-3">
-          <h2 className="text-lg font-medium">Select conversation stage</h2>
-          <div className="space-y-2">
-            {stages.map((s) => (
+        {/* Stage filter bar */}
+        <div
+          className="flex items-center gap-2 overflow-x-auto px-4 py-3 shrink-0"
+          style={{ borderBottom: BORDER, backgroundColor: CARD_BG }}
+        >
+          <button
+            onClick={() => setStageFilter(null)}
+            className="shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: stageFilter === null ? ACCENT : 'transparent',
+              color: stageFilter === null ? '#fff' : SECONDARY,
+              border: stageFilter === null ? `1px solid ${ACCENT}` : BORDER,
+            }}
+          >
+            All
+          </button>
+          {STAGE_ORDERS.map((order) => {
+            const cfg = STAGE_CONFIG[order];
+            const Icon = cfg.icon;
+            const active = stageFilter === order;
+            return (
               <button
-                key={s.STAGE_ID}
-                onClick={() => handleStartSession(s.STAGE_ID)}
-                className="w-full rounded-xl border border-gray-200 bg-white px-5 py-4 text-left font-medium hover:bg-gray-50"
+                key={order}
+                onClick={() => setStageFilter(active ? null : order)}
+                className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                style={{
+                  backgroundColor: active ? ACCENT : 'transparent',
+                  color: active ? '#fff' : SECONDARY,
+                  border: active ? `1px solid ${ACCENT}` : BORDER,
+                }}
               >
-                {s.NAME}
+                <Icon size={14} />
+                {cfg.label}
               </button>
-            ))}
-          </div>
-        </section>
-      )}
+            );
+          })}
+        </div>
 
-      {/* Outstanding actions */}
-      {actions.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-lg font-medium">Outstanding actions</h2>
-          <div className="space-y-2">
-            {actions.map((a) => (
-              <div
-                key={a.ACTION_ID}
-                className="flex items-start justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4"
-              >
-                <div className="space-y-1">
-                  <p className="font-medium">{a.ACTION_TEXT}</p>
-                  <p className="text-sm text-gray-600">
-                    {a.PATIENT_FULL_NAME}
-                    {a.ASSIGNED_TO && ` · ${a.ASSIGNED_TO}`}
-                    {a.DUE_DATE && ` · Due ${new Date(a.DUE_DATE).toLocaleDateString('en-GB')}`}
-                  </p>
-                </div>
-                <button
-                  onClick={() => completeAction(a.ACTION_ID)}
-                  disabled={completing === a.ACTION_ID}
-                  className="shrink-0 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
-                >
-                  {completing === a.ACTION_ID ? 'Saving…' : 'Done'}
-                </button>
+        {/* Patient cards grid */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {filteredPatients.length === 0 ? (
+            <p className="mt-8 text-center text-sm" style={{ color: SECONDARY }}>
+              {stageFilter ? 'No patients due this stage.' : 'No assigned patients.'}
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {filteredPatients.map((p) => {
+                const nextOrder = dueStageByPatient.get(p.PATIENT_ID);
+                const stageCfg = nextOrder ? STAGE_CONFIG[nextOrder] : null;
+                const StageIcon = stageCfg?.icon;
+                const dob = p.DATE_OF_BIRTH
+                  ? new Date(p.DATE_OF_BIRTH).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                  : '';
+
+                return (
+                  <button
+                    key={p.PATIENT_ID}
+                    onClick={() => router.push(`/session/stage-select?patientId=${p.PATIENT_ID}&patientName=${encodeURIComponent(p.PATIENT_NAME)}`)}
+                    className="flex flex-col gap-2 rounded-xl p-3 text-left transition-colors hover:brightness-110"
+                    style={{ backgroundColor: CARD_BG, border: BORDER }}
+                  >
+                    <div className="flex items-start justify-between gap-1">
+                      <p className="text-sm font-semibold leading-tight" style={{ color: '#fff' }}>
+                        {p.PATIENT_NAME}
+                      </p>
+                      {StageIcon && (
+                        <StageIcon size={14} style={{ color: ACCENT, flexShrink: 0, marginTop: 2 }} />
+                      )}
+                    </div>
+                    <p className="text-xs" style={{ color: SECONDARY }}>{dob}</p>
+                    {stageCfg && (
+                      <p className="text-xs font-medium" style={{ color: ACCENT }}>{stageCfg.label}</p>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right: sidebar */}
+      <div className="w-80 shrink-0 overflow-y-auto" style={{ backgroundColor: '#0a0a0f' }}>
+
+        {/* Actions */}
+        <SidebarSection
+          icon={<CheckCircle size={15} style={{ color: ACCENT }} />}
+          title="Actions"
+          empty={actions.length === 0}
+          emptyText="No open actions"
+        >
+          {actions.map((a) => (
+            <div
+              key={a.ACTION_ID}
+              className="flex items-start gap-3 rounded-lg p-3"
+              style={{ backgroundColor: CARD_BG, border: BORDER }}
+            >
+              <div className="flex-1 space-y-0.5">
+                <p className="text-xs font-medium" style={{ color: SECONDARY }}>{a.PATIENT_NAME}</p>
+                <p className="text-sm leading-snug" style={{ color: '#fff' }}>{a.ACTION_TEXT}</p>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
+              <button
+                onClick={() => completeAction(a.ACTION_ID)}
+                disabled={completing === a.ACTION_ID}
+                className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ backgroundColor: ACCENT, color: '#fff' }}
+              >
+                {completing === a.ACTION_ID ? '...' : 'Done'}
+              </button>
+            </div>
+          ))}
+        </SidebarSection>
+
+        {/* Due conversations */}
+        <SidebarSection
+          icon={<MessageSquare size={15} style={{ color: ACCENT }} />}
+          title="Due conversations"
+          empty={due.length === 0}
+          emptyText="All conversations up to date"
+        >
+          {due.map((d) => {
+            const cfg = STAGE_CONFIG[d.NEXT_STAGE_ORDER];
+            const Icon = cfg?.icon;
+            return (
+              <button
+                key={`${d.PATIENT_ID}-${d.NEXT_STAGE_ID}`}
+                onClick={() => router.push(`/session/stage-select?patientId=${d.PATIENT_ID}&patientName=${encodeURIComponent(d.PATIENT_NAME)}`)}
+                className="flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors hover:brightness-110"
+                style={{ backgroundColor: CARD_BG, border: BORDER }}
+              >
+                {Icon && <Icon size={14} style={{ color: ACCENT, flexShrink: 0 }} />}
+                <div>
+                  <p className="text-sm font-medium" style={{ color: '#fff' }}>{d.PATIENT_NAME}</p>
+                  <p className="text-xs" style={{ color: SECONDARY }}>{d.NEXT_STAGE_NAME}</p>
+                </div>
+              </button>
+            );
+          })}
+        </SidebarSection>
+
+        {/* Flagged scores */}
+        <SidebarSection
+          icon={<AlertTriangle size={15} style={{ color: '#f59e0b' }} />}
+          title="Flagged scores"
+          empty={flagged.length === 0}
+          emptyText="No flagged scores in last 30 days"
+        >
+          {flagged.map((f, i) => (
+            <div
+              key={i}
+              className="rounded-lg p-3 space-y-1"
+              style={{ backgroundColor: CARD_BG, border: '1px solid rgba(245,158,11,0.2)' }}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium" style={{ color: SECONDARY }}>{f.PATIENT_NAME}</p>
+                <span
+                  className="rounded px-1.5 py-0.5 text-xs font-bold"
+                  style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#f87171' }}
+                >
+                  {f.SCORE}/5
+                </span>
+              </div>
+              <p className="text-xs leading-snug" style={{ color: '#fff' }}>{f.QUESTION_TEXT}</p>
+              <p className="text-xs" style={{ color: SECONDARY }}>{f.STAGE_NAME}</p>
+            </div>
+          ))}
+        </SidebarSection>
+
+      </div>
+    </div>
+  );
+}
+
+function SidebarSection({
+  icon,
+  title,
+  empty,
+  emptyText,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  empty: boolean;
+  emptyText: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="border-b" style={{ borderColor: '#1e1e2a' }}>
+      <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: '1px solid #1e1e2a' }}>
+        {icon}
+        <span className="text-sm font-semibold" style={{ color: '#fff' }}>{title}</span>
+      </div>
+      <div className="space-y-2 p-3">
+        {empty ? (
+          <p className="py-2 text-center text-xs" style={{ color: '#8a8a9a' }}>{emptyText}</p>
+        ) : (
+          children
+        )}
+      </div>
     </div>
   );
 }

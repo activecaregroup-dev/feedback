@@ -13,12 +13,12 @@ export async function GET(request: Request) {
   const rows = await query<{
     QUESTION_ID: number;
     QUESTION_TEXT: string;
-    DISPLAY_ORDER: number;
+    QUESTION_ORDER: number;
   }>(
-    `SELECT QUESTION_ID, QUESTION_TEXT, DISPLAY_ORDER
+    `SELECT QUESTION_ID, QUESTION_TEXT, QUESTION_ORDER
      FROM QUESTIONS
      WHERE STAGE_ID = ?
-     ORDER BY DISPLAY_ORDER`,
+     ORDER BY QUESTION_ORDER`,
     [stageId]
   );
 
