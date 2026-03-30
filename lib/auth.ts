@@ -42,7 +42,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       // TODO: remove before go-live
       if (token.devUser) {
-        session.user = DEV_USER;
+        session.user = { ...DEV_USER, emailVerified: null };
         return session;
       }
 
