@@ -50,8 +50,16 @@ export async function PATCH(request: Request) {
 
     const { actionId } = await request.json();
     await query(
-      `UPDATE ${FB}.ACTIONS SET COMPLETED_AT = CURRENT_TIMESTAMP(), STATUS = 'COMPLETED' WHERE ACTION_ID = ?`,
-      [actionId]
+      `UPDATE ${FB}.ACTIONS a
+       SET a.COMPLETED_AT = CURRENT_TIMESTAMP(), a.STATUS = 'COMPLETED'
+       WHERE a.ACTION_ID = ?
+         AND EXISTS (
+           SELECT 1 FROM ${FB}.PATIENT_ASSIGNMENTS pa
+           WHERE pa.PATIENT_ID = a.PATIENT_ID
+             AND pa.USER_ID = ?
+             AND pa.IS_ACTIVE = TRUE
+         )`,
+      [actionId, session.user.id]
     );
 
     return NextResponse.json({ ok: true });

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, Minus, UserCircle2 } from 'lucide-react';
+import { STAGE_CONFIG } from '@/lib/stage-config';
 
 interface SitePatient {
   PATIENT_ID: number;
@@ -11,6 +12,7 @@ interface SitePatient {
   ASSIGNMENT_ID: number | null;
   ASSIGNED_USER_ID: number | null;
   ASSIGNED_USER_NAME: string | null;
+  NEXT_STAGE_ORDER: number | null;
 }
 
 const BORDER = '1px solid #1e1e2a';
@@ -157,10 +159,16 @@ export default function PatientsPage() {
               <Empty text="No unassigned patients" />
             ) : (
               <div className="grid grid-cols-2 gap-2">
-                {unassigned.map((p) => (
+                {unassigned.map((p) => {
+                  const stageCfg = p.NEXT_STAGE_ORDER ? STAGE_CONFIG[p.NEXT_STAGE_ORDER] : null;
+                  const StageIcon = stageCfg?.icon;
+                  return (
                   <PatientCard key={p.PATIENT_ID}>
                     <div className="flex min-w-0 flex-1 flex-col justify-center px-2.5 py-2">
-                      <p className="truncate text-xs font-semibold leading-tight" style={{ color: '#fff' }}>{p.PATIENT_NAME}</p>
+                      <div className="flex items-start justify-between gap-1">
+                        <p className="truncate text-xs font-semibold leading-tight" style={{ color: '#fff' }}>{p.PATIENT_NAME}</p>
+                        {StageIcon && <StageIcon size={16} style={{ color: ACCENT, flexShrink: 0, marginTop: 1 }} />}
+                      </div>
                       <p className="mt-0.5 text-xs" style={{ color: SECONDARY }}>{dob(p.DATE_OF_BIRTH)}</p>
                     </div>
                     <ActionStrip
@@ -173,7 +181,8 @@ export default function PatientsPage() {
                       <Plus size={14} />
                     </ActionStrip>
                   </PatientCard>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Section>
@@ -184,17 +193,23 @@ export default function PatientsPage() {
               <Empty text="No patients assigned to others" />
             ) : (
               <div className="grid grid-cols-2 gap-2">
-                {others.map((p) => (
+                {others.map((p) => {
+                  const stageCfg = p.NEXT_STAGE_ORDER ? STAGE_CONFIG[p.NEXT_STAGE_ORDER] : null;
+                  const StageIcon = stageCfg?.icon;
+                  return (
                   <PatientCard key={p.PATIENT_ID} dimmed>
                     <div className="flex min-w-0 flex-1 flex-col justify-center px-2.5 py-2">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span
-                          className="shrink-0 flex items-center justify-center rounded-full font-semibold"
-                          style={{ width: 18, height: 18, backgroundColor: '#1e1e2a', color: SECONDARY, border: BORDER, fontSize: 8 }}
-                        >
-                          {initials(p.ASSIGNED_USER_NAME)}
-                        </span>
-                        <p className="truncate text-xs font-semibold leading-tight" style={{ color: '#fff' }}>{p.PATIENT_NAME}</p>
+                      <div className="flex items-start justify-between gap-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span
+                            className="shrink-0 flex items-center justify-center rounded-full font-semibold"
+                            style={{ width: 26, height: 26, backgroundColor: '#1e1e2a', color: SECONDARY, border: BORDER, fontSize: 11 }}
+                          >
+                            {initials(p.ASSIGNED_USER_NAME)}
+                          </span>
+                          <p className="truncate text-xs font-semibold leading-tight" style={{ color: '#fff' }}>{p.PATIENT_NAME}</p>
+                        </div>
+                        {StageIcon && <StageIcon size={16} style={{ color: ACCENT, flexShrink: 0, marginTop: 1 }} />}
                       </div>
                       <p className="mt-0.5 text-xs" style={{ color: SECONDARY }}>{dob(p.DATE_OF_BIRTH)}</p>
                     </div>
@@ -208,7 +223,8 @@ export default function PatientsPage() {
                       <Minus size={14} />
                     </ActionStrip>
                   </PatientCard>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Section>
@@ -221,10 +237,16 @@ export default function PatientsPage() {
               <Empty text="You have no assigned patients" />
             ) : (
               <div className="grid grid-cols-2 gap-2">
-                {mine.map((p) => (
+                {mine.map((p) => {
+                  const stageCfg = p.NEXT_STAGE_ORDER ? STAGE_CONFIG[p.NEXT_STAGE_ORDER] : null;
+                  const StageIcon = stageCfg?.icon;
+                  return (
                   <PatientCard key={p.PATIENT_ID}>
                     <div className="flex min-w-0 flex-1 flex-col justify-center px-2.5 py-2">
-                      <p className="truncate text-xs font-semibold leading-tight" style={{ color: '#fff' }}>{p.PATIENT_NAME}</p>
+                      <div className="flex items-start justify-between gap-1">
+                        <p className="truncate text-xs font-semibold leading-tight" style={{ color: '#fff' }}>{p.PATIENT_NAME}</p>
+                        {StageIcon && <StageIcon size={16} style={{ color: ACCENT, flexShrink: 0, marginTop: 1 }} />}
+                      </div>
                       <p className="mt-0.5 text-xs" style={{ color: SECONDARY }}>{dob(p.DATE_OF_BIRTH)}</p>
                     </div>
                     <ActionStrip
@@ -237,7 +259,8 @@ export default function PatientsPage() {
                       <Minus size={14} />
                     </ActionStrip>
                   </PatientCard>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Section>
