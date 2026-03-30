@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { query, CN } from '@/lib/snowflake';
+import { query, CN, FB } from '@/lib/snowflake';
 
 // Outstanding actions for the current user's site
 export async function GET() {
@@ -24,13 +24,16 @@ export async function GET() {
          a.CREATED_AT,
          a.PATIENT_ID,
          p.PATIENT_NAME
-       FROM ACTIONS a
-       JOIN SESSIONS s ON s.SESSION_ID = a.SESSION_ID
+       FROM ${FB}.ACTIONS a
+       JOIN ${FB}.SESSIONS s ON s.SESSION_ID = a.SESSION_ID
        JOIN ${CN}.PATIENT p ON p.PATIENT_ID = a.PATIENT_ID
-       WHERE s.SITE_ID = ?
-         AND a.COMPLETED_AT IS NULL
+       JOIN ${FB}.PATIENT_ASSIGNMENTS pa
+         ON pa.PATIENT_ID = a.PATIENT_ID
+        AND pa.USER_ID = ?
+        AND pa.IS_ACTIVE = TRUE
+       WHERE a.COMPLETED_AT IS NULL
        ORDER BY a.CREATED_AT DESC`,
-      [session.user.siteId]
+      [session.user.id]
     );
 
     return NextResponse.json(rows);
@@ -47,7 +50,7 @@ export async function PATCH(request: Request) {
 
     const { actionId } = await request.json();
     await query(
-      `UPDATE ACTIONS SET COMPLETED_AT = CURRENT_TIMESTAMP(), STATUS = 'COMPLETED' WHERE ACTION_ID = ?`,
+      `UPDATE ${FB}.ACTIONS SET COMPLETED_AT = CURRENT_TIMESTAMP(), STATUS = 'COMPLETED' WHERE ACTION_ID = ?`,
       [actionId]
     );
 
