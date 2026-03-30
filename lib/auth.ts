@@ -6,6 +6,7 @@ export interface AppUser {
   id: string;
   name: string;
   email: string;
+  emailVerified: null;
   oid: string;
   siteId: number;
   siteName: string;
@@ -22,6 +23,7 @@ const DEV_USER: AppUser = {
   id: 'dev',
   name: 'Dev User',
   email: 'dev@local',
+  emailVerified: null,
   oid: 'dev-oid',
   siteId: 1,
   siteName: 'Nottingham',
@@ -42,7 +44,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       // TODO: remove before go-live
       if (token.devUser) {
-        session.user = { ...DEV_USER, emailVerified: null };
+        session.user = DEV_USER;
         return session;
       }
 
@@ -72,6 +74,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         id: String(row.USER_ID),
         name: row.DISPLAY_NAME,
         email: session.user.email ?? '',
+        emailVerified: null,
         oid,
         siteId: row.SITE_ID,
         siteName: row.SITE_NAME,
