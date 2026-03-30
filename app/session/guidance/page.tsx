@@ -28,6 +28,7 @@ function GuidanceContent() {
   const patientId = searchParams.get('patientId')!;
   const stageId = searchParams.get('stageId')!;
   const patientName = searchParams.get('patientName') ?? 'Patient';
+  const stageName = searchParams.get('stageName') ?? '';
 
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
@@ -51,7 +52,7 @@ function GuidanceContent() {
   function proceed() {
     const checklistParam = encodeURIComponent(JSON.stringify(checked));
     router.push(
-      `/session/feedback?patientId=${patientId}&stageId=${stageId}&patientName=${encodeURIComponent(patientName)}&checklist=${checklistParam}`
+      `/session/feedback?patientId=${patientId}&stageId=${stageId}&patientName=${encodeURIComponent(patientName)}&stageName=${encodeURIComponent(stageName)}&checklist=${checklistParam}`
     );
   }
 

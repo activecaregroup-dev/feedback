@@ -48,7 +48,7 @@ function StageSelectContent() {
   function startStage(stage: StageRow) {
     if (stage.status !== 'due') return;
     router.push(
-      `/session/guidance?patientId=${patientId}&stageId=${stage.STAGE_ID}&patientName=${encodeURIComponent(patientName)}`
+      `/session/guidance?patientId=${patientId}&stageId=${stage.STAGE_ID}&patientName=${encodeURIComponent(patientName)}&stageName=${encodeURIComponent(stage.STAGE_NAME)}`
     );
   }
 

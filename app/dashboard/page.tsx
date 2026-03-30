@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { STAGE_CONFIG, STAGE_ORDERS } from '@/lib/stage-config';
-import { CheckCircle, AlertTriangle, MessageSquare, Users } from 'lucide-react';
+import { CheckCircle, AlertTriangle, MessageSquare, Users, Search, Mail } from 'lucide-react';
 
 interface Patient {
   PATIENT_ID: number;
@@ -51,6 +51,8 @@ export default function DashboardPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [stageFilter, setStageFilter] = useState<number | null>(null);
   const [completing, setCompleting] = useState<number | null>(null);
+  const [search, setSearch] = useState('');
+  const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
     async function load() {
@@ -77,6 +79,7 @@ export default function DashboardPage() {
         setActions(Array.isArray(a) ? a : []);
         setDue(Array.isArray(d) ? d : []);
         setFlagged(Array.isArray(f) ? f : []);
+        fetch('/api/me').then((r) => r.ok ? r.json() : null).then((me) => { if (me?.email) setUserEmail(me.email); });
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : 'Failed to load dashboard');
       } finally {
@@ -102,9 +105,9 @@ export default function DashboardPage() {
     due.map((d) => [d.PATIENT_ID, d.NEXT_STAGE_ORDER])
   );
 
-  const filteredPatients = stageFilter === null
-    ? patients
-    : patients.filter((p) => dueStageByPatient.get(p.PATIENT_ID) === stageFilter);
+  const filteredPatients = patients
+    .filter((p) => stageFilter === null || dueStageByPatient.get(p.PATIENT_ID) === stageFilter)
+    .filter((p) => !search || p.PATIENT_NAME.toLowerCase().includes(search.toLowerCase()));
 
   if (loading) {
     return (
@@ -133,17 +136,28 @@ export default function DashboardPage() {
 
         {/* Top bar */}
         <div
-          className="flex items-center justify-between px-4 py-3 shrink-0"
+          className="flex items-center gap-3 px-4 py-3 shrink-0"
           style={{ borderBottom: BORDER, backgroundColor: CARD_BG }}
         >
           <button
             onClick={() => router.push('/patients')}
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-opacity hover:opacity-80"
+            className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-opacity hover:opacity-80"
             style={{ backgroundColor: '#1e1e2a', color: '#fff', border: BORDER }}
           >
             <Users size={14} />
             Manage patients
           </button>
+          <div className="relative flex-1">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#8a8a9a' }} />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search patients..."
+              className="w-full rounded-lg py-2 pl-8 pr-3 text-sm outline-none"
+              style={{ backgroundColor: '#1e1e2a', border: BORDER, color: '#fff', caretColor: '#ff6b2b' }}
+            />
+          </div>
         </div>
 
         {/* Stage filter bar */}
@@ -201,7 +215,7 @@ export default function DashboardPage() {
                 return (
                   <button
                     key={p.PATIENT_ID}
-                    onClick={() => router.push(`/session/stage-select?patientId=${p.PATIENT_ID}&patientName=${encodeURIComponent(p.PATIENT_NAME)}`)}
+                    onClick={() => router.push(`/patient/${p.PATIENT_ID}`)}
                     className="flex flex-col gap-2 rounded-xl p-3 text-left transition-colors hover:brightness-110"
                     style={{ backgroundColor: CARD_BG, border: BORDER }}
                   >
@@ -215,7 +229,7 @@ export default function DashboardPage() {
                     </div>
                     <p className="text-xs" style={{ color: SECONDARY }}>Admitted: {fmt(p.ADMISSION_DATE)}</p>
                     {p.PLANNED_DISCHARGE_DATE && (
-                      <p className="text-xs" style={{ color: SECONDARY }}>Discharge: {fmt(p.PLANNED_DISCHARGE_DATE)}</p>
+                      <p className="text-xs" style={{ color: SECONDARY }}>Planned discharge: {fmt(p.PLANNED_DISCHARGE_DATE)}</p>
                     )}
                     {stageCfg && (
                       <p className="text-xs font-medium" style={{ color: '#38bdf8' }}>{stageCfg.label}</p>
@@ -237,6 +251,16 @@ export default function DashboardPage() {
           title="Actions"
           empty={actions.length === 0}
           emptyText="No open actions"
+          headerAction={actions.length > 0 ? (
+            <a
+              href={`mailto:${userEmail}?subject=${encodeURIComponent(`Outstanding actions - ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}`)}&body=${encodeURIComponent(actions.map((a) => `${a.PATIENT_NAME}: ${a.ACTION_TEXT}`).join('\n'))}`}
+              className="rounded-lg p-1.5 transition-opacity hover:opacity-70"
+              style={{ color: SECONDARY }}
+              title="Email actions"
+            >
+              <Mail size={14} />
+            </a>
+          ) : undefined}
         >
           {actions.map((a) => (
             <div
@@ -325,19 +349,22 @@ function SidebarSection({
   title,
   empty,
   emptyText,
+  headerAction,
   children,
 }: {
   icon: React.ReactNode;
   title: string;
   empty: boolean;
   emptyText: string;
+  headerAction?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   return (
     <div className="border-b" style={{ borderColor: '#1e1e2a' }}>
       <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: '1px solid #1e1e2a' }}>
         {icon}
-        <span className="text-sm font-semibold" style={{ color: '#fff' }}>{title}</span>
+        <span className="flex-1 text-sm font-semibold" style={{ color: '#fff' }}>{title}</span>
+        {headerAction}
       </div>
       <div className="space-y-2 p-3">
         {empty ? (

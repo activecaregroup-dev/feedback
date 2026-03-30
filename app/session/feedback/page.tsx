@@ -41,6 +41,7 @@ function FeedbackContent() {
   const patientId = searchParams.get('patientId')!;
   const stageId = searchParams.get('stageId')!;
   const patientName = searchParams.get('patientName') ?? 'Patient';
+  const stageName = searchParams.get('stageName') ?? '';
   const checklistParam = searchParams.get('checklist') ?? '{}';
 
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -115,7 +116,7 @@ function FeedbackContent() {
     });
 
     if (res.ok) {
-      router.push('/dashboard?submitted=1');
+      router.push(`/session/confirmation?patientId=${patientId}&patientName=${encodeURIComponent(patientName)}&stageName=${encodeURIComponent(stageName)}`);
     } else {
       alert('Submission failed. Please try again.');
       setSubmitting(false);

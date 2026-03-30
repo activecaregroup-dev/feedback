@@ -16,7 +16,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`h-full antialiased ${inter.variable}`}>
-      <body className="min-h-full flex flex-col font-sans" style={{ backgroundColor: 'var(--color-bg)', color: '#fff' }}>{children}</body>
+      <body className="min-h-full flex flex-col font-sans" style={{ backgroundColor: 'var(--color-bg)', color: '#fff' }}>
+        {children}
+        <footer className="py-3 text-center text-xs" style={{ color: '#4a4a5a' }}>
+          v0.1 &copy; Active Care Group
+        </footer>
+      </body>
     </html>
   );
 }
