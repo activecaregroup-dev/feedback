@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth';
 import MicrosoftEntraID from 'next-auth/providers/microsoft-entra-id';
+import Credentials from 'next-auth/providers/credentials';
 import { query } from '@/lib/snowflake';
 
 export interface AppUser {
@@ -17,6 +18,16 @@ declare module 'next-auth' {
   }
 }
 
+// TODO: remove before go-live
+const DEV_USER: AppUser = {
+  id: 'dev',
+  name: 'Dev User',
+  email: 'dev@local',
+  oid: 'dev-oid',
+  siteId: 1,
+  siteName: 'Nottingham',
+};
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     MicrosoftEntraID({
@@ -24,16 +35,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
       tenantId: process.env.AZURE_AD_TENANT_ID!,
     }),
+    // TODO: remove before go-live
+    Credentials({
+      credentials: { password: {} },
+      authorize(credentials) {
+        if (credentials.password === 'dev2026') {
+          return { id: DEV_USER.id, name: DEV_USER.name, email: DEV_USER.email };
+        }
+        return null;
+      },
+    }),
   ],
   callbacks: {
-    async jwt({ token, account, profile }) {
-      if (account && profile) {
-        // Store OID from Azure AD profile on first sign-in
+    async jwt({ token, account, profile, user }) {
+      if (account?.provider === 'credentials' && user) {
+        // TODO: remove before go-live
+        token.devUser = true;
+      } else if (account && profile) {
         token.oid = (profile as Record<string, unknown>).oid as string;
       }
       return token;
     },
     async session({ session, token }) {
+      // TODO: remove before go-live
+      if (token.devUser) {
+        session.user = DEV_USER;
+        return session;
+      }
+
       const oid = token.oid as string;
       if (!oid) return session;
 

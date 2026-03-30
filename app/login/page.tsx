@@ -39,6 +39,31 @@ export default async function LoginPage({
             Sign in with Microsoft
           </button>
         </form>
+
+        {/* TODO: remove before go-live */}
+        <form
+          action={async (formData: FormData) => {
+            'use server';
+            await signIn('credentials', {
+              password: formData.get('password'),
+              redirectTo: '/dashboard',
+            });
+          }}
+          className="space-y-2"
+        >
+          <input
+            type="password"
+            name="password"
+            placeholder="Dev password"
+            className="w-full rounded-xl border border-gray-200 px-4 py-4 text-base placeholder-gray-400 focus:border-gray-400 focus:outline-none"
+          />
+          <button
+            type="submit"
+            className="w-full rounded-xl border border-gray-300 bg-gray-100 px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-200"
+          >
+            Dev login
+          </button>
+        </form>
       </div>
     </div>
   );
