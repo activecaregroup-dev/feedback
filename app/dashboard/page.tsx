@@ -9,6 +9,8 @@ interface Patient {
   PATIENT_ID: number;
   PATIENT_NAME: string;
   DATE_OF_BIRTH: string;
+  ADMISSION_DATE: string;
+  PLANNED_DISCHARGE_DATE: string | null;
 }
 
 interface Action {
@@ -194,9 +196,7 @@ export default function DashboardPage() {
                 const nextOrder = dueStageByPatient.get(p.PATIENT_ID);
                 const stageCfg = nextOrder ? STAGE_CONFIG[nextOrder] : null;
                 const StageIcon = stageCfg?.icon;
-                const dob = p.DATE_OF_BIRTH
-                  ? new Date(p.DATE_OF_BIRTH).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-                  : '';
+                const fmt = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
                 return (
                   <button
@@ -210,12 +210,15 @@ export default function DashboardPage() {
                         {p.PATIENT_NAME}
                       </p>
                       {StageIcon && (
-                        <StageIcon size={14} style={{ color: ACCENT, flexShrink: 0, marginTop: 2 }} />
+                        <StageIcon size={20} style={{ color: ACCENT, flexShrink: 0, marginTop: 2 }} />
                       )}
                     </div>
-                    <p className="text-xs" style={{ color: SECONDARY }}>{dob}</p>
+                    <p className="text-xs" style={{ color: SECONDARY }}>Admitted: {fmt(p.ADMISSION_DATE)}</p>
+                    {p.PLANNED_DISCHARGE_DATE && (
+                      <p className="text-xs" style={{ color: SECONDARY }}>Discharge: {fmt(p.PLANNED_DISCHARGE_DATE)}</p>
+                    )}
                     {stageCfg && (
-                      <p className="text-xs font-medium" style={{ color: ACCENT }}>{stageCfg.label}</p>
+                      <p className="text-xs font-medium" style={{ color: '#38bdf8' }}>{stageCfg.label}</p>
                     )}
                   </button>
                 );
@@ -226,7 +229,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Right: sidebar */}
-      <div className="shrink-0 overflow-y-auto" style={{ width: 360, backgroundColor: '#0a0a0f' }}>
+      <div className="w-1/3 shrink-0 overflow-y-auto" style={{ backgroundColor: '#0a0a0f' }}>
 
         {/* Actions */}
         <SidebarSection
@@ -249,7 +252,7 @@ export default function DashboardPage() {
                 onClick={() => completeAction(a.ACTION_ID)}
                 disabled={completing === a.ACTION_ID}
                 className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-                style={{ backgroundColor: ACCENT, color: '#fff' }}
+                style={{ backgroundColor: '#38bdf8', color: '#0a0a0f' }}
               >
                 {completing === a.ACTION_ID ? '...' : 'Done'}
               </button>
@@ -260,7 +263,7 @@ export default function DashboardPage() {
         {/* Due conversations */}
         <SidebarSection
           icon={<MessageSquare size={15} style={{ color: ACCENT }} />}
-          title="Due conversations"
+          title="Due next"
           empty={due.length === 0}
           emptyText="All conversations up to date"
         >
@@ -277,7 +280,7 @@ export default function DashboardPage() {
                 {Icon && <Icon size={14} style={{ color: ACCENT, flexShrink: 0 }} />}
                 <div>
                   <p className="text-sm font-medium" style={{ color: '#fff' }}>{d.PATIENT_NAME}</p>
-                  <p className="text-xs" style={{ color: SECONDARY }}>{d.NEXT_STAGE_NAME}</p>
+                  <p className="text-xs font-medium" style={{ color: '#38bdf8' }}>{d.NEXT_STAGE_NAME}</p>
                 </div>
               </button>
             );
@@ -307,7 +310,7 @@ export default function DashboardPage() {
                 </span>
               </div>
               <p className="text-xs leading-snug" style={{ color: '#fff' }}>{f.QUESTION_TEXT}</p>
-              <p className="text-xs" style={{ color: SECONDARY }}>{f.STAGE_NAME}</p>
+              <p className="text-xs font-medium" style={{ color: '#38bdf8' }}>{f.STAGE_NAME}</p>
             </div>
           ))}
         </SidebarSection>

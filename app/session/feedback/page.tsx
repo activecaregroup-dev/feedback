@@ -137,10 +137,10 @@ function FeedbackContent() {
         <div>
           <button
             onClick={() => router.push(`/session/guidance?patientId=${patientId}&stageId=${stageId}&patientName=${encodeURIComponent(patientName)}`)}
-            className="mb-5 flex w-fit items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-opacity hover:opacity-70"
+            className="mb-5 flex w-fit items-center gap-2 rounded-xl px-4 py-3 text-base font-medium transition-opacity hover:opacity-70"
             style={{ backgroundColor: '#141419', border: '1px solid #1e1e2a', color: '#fff' }}
           >
-            <ArrowLeft size={15} />
+            <ArrowLeft size={20} />
             Back
           </button>
           <p className="text-sm" style={{ color: SECONDARY }}>Feedback capture</p>

@@ -139,10 +139,10 @@ export default function PatientsPage() {
       >
         <button
           onClick={() => router.push('/dashboard')}
-          className="rounded-lg p-2 transition-opacity hover:opacity-70"
+          className="rounded-xl p-3.5 transition-opacity hover:opacity-70"
           style={{ backgroundColor: '#1e1e2a', color: '#fff' }}
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={24} />
         </button>
         <h1 className="text-lg font-semibold" style={{ color: '#fff' }}>Manage patients</h1>
       </div>
@@ -165,9 +165,19 @@ export default function PatientsPage() {
                   return (
                   <PatientCard key={p.PATIENT_ID}>
                     <div className="flex min-w-0 flex-1 flex-col justify-center px-2.5 py-2">
-                      <div className="flex items-start justify-between gap-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <p className="truncate text-xs font-semibold leading-tight" style={{ color: '#fff' }}>{p.PATIENT_NAME}</p>
-                        {StageIcon && <StageIcon size={16} style={{ color: ACCENT, flexShrink: 0, marginTop: 1 }} />}
+                        {StageIcon && stageCfg && (
+                          <span className="relative group shrink-0">
+                            <StageIcon size={20} style={{ color: ACCENT }} />
+                            <span
+                              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10"
+                              style={{ backgroundColor: '#1e1e2a', color: '#fff', border: BORDER }}
+                            >
+                              {stageCfg.label}
+                            </span>
+                          </span>
+                        )}
                       </div>
                       <p className="mt-0.5 text-xs" style={{ color: SECONDARY }}>{dob(p.DATE_OF_BIRTH)}</p>
                     </div>
@@ -199,17 +209,25 @@ export default function PatientsPage() {
                   return (
                   <PatientCard key={p.PATIENT_ID} dimmed>
                     <div className="flex min-w-0 flex-1 flex-col justify-center px-2.5 py-2">
-                      <div className="flex items-start justify-between gap-1">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span
-                            className="shrink-0 flex items-center justify-center rounded-full font-semibold"
-                            style={{ width: 26, height: 26, backgroundColor: '#1e1e2a', color: SECONDARY, border: BORDER, fontSize: 11 }}
-                          >
-                            {initials(p.ASSIGNED_USER_NAME)}
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span
+                          className="shrink-0 flex items-center justify-center rounded-full font-semibold"
+                          style={{ width: 26, height: 26, backgroundColor: '#1e1e2a', color: SECONDARY, border: BORDER, fontSize: 11 }}
+                        >
+                          {initials(p.ASSIGNED_USER_NAME)}
+                        </span>
+                        <p className="truncate text-xs font-semibold leading-tight" style={{ color: '#fff' }}>{p.PATIENT_NAME}</p>
+                        {StageIcon && stageCfg && (
+                          <span className="relative group shrink-0">
+                            <StageIcon size={20} style={{ color: ACCENT }} />
+                            <span
+                              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10"
+                              style={{ backgroundColor: '#1e1e2a', color: '#fff', border: BORDER }}
+                            >
+                              {stageCfg.label}
+                            </span>
                           </span>
-                          <p className="truncate text-xs font-semibold leading-tight" style={{ color: '#fff' }}>{p.PATIENT_NAME}</p>
-                        </div>
-                        {StageIcon && <StageIcon size={16} style={{ color: ACCENT, flexShrink: 0, marginTop: 1 }} />}
+                        )}
                       </div>
                       <p className="mt-0.5 text-xs" style={{ color: SECONDARY }}>{dob(p.DATE_OF_BIRTH)}</p>
                     </div>
@@ -243,9 +261,19 @@ export default function PatientsPage() {
                   return (
                   <PatientCard key={p.PATIENT_ID}>
                     <div className="flex min-w-0 flex-1 flex-col justify-center px-2.5 py-2">
-                      <div className="flex items-start justify-between gap-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <p className="truncate text-xs font-semibold leading-tight" style={{ color: '#fff' }}>{p.PATIENT_NAME}</p>
-                        {StageIcon && <StageIcon size={16} style={{ color: ACCENT, flexShrink: 0, marginTop: 1 }} />}
+                        {StageIcon && stageCfg && (
+                          <span className="relative group shrink-0">
+                            <StageIcon size={20} style={{ color: ACCENT }} />
+                            <span
+                              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10"
+                              style={{ backgroundColor: '#1e1e2a', color: '#fff', border: BORDER }}
+                            >
+                              {stageCfg.label}
+                            </span>
+                          </span>
+                        )}
                       </div>
                       <p className="mt-0.5 text-xs" style={{ color: SECONDARY }}>{dob(p.DATE_OF_BIRTH)}</p>
                     </div>
@@ -347,7 +375,7 @@ function Section({
 function PatientCard({ children, dimmed }: { children: React.ReactNode; dimmed?: boolean }) {
   return (
     <div
-      className="flex overflow-hidden rounded-xl"
+      className="flex rounded-xl"
       style={{ backgroundColor: '#141419', border: '1px solid #1e1e2a', opacity: dimmed ? 0.65 : 1 }}
     >
       {children}

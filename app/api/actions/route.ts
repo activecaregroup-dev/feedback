@@ -51,7 +51,7 @@ export async function PATCH(request: Request) {
     const { actionId } = await request.json();
     await query(
       `UPDATE ${FB}.ACTIONS a
-       SET a.COMPLETED_AT = CURRENT_TIMESTAMP(), a.STATUS = 'COMPLETED'
+       SET a.COMPLETED_AT = CURRENT_TIMESTAMP(), a.STATUS = 'COMPLETE'
        WHERE a.ACTION_ID = ?
          AND EXISTS (
            SELECT 1 FROM ${FB}.PATIENT_ASSIGNMENTS pa
