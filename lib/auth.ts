@@ -20,7 +20,7 @@ declare module 'next-auth' {
 
 // TODO: remove before go-live
 const DEV_USER: AppUser = {
-  id: '0',
+  id: '101',
   name: 'Dev User',
   email: 'dev@local',
   emailVerified: null,
