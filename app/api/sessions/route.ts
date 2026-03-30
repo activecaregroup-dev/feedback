@@ -1,61 +1,62 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { query } from '@/lib/snowflake';
+import { query, FB } from '@/lib/snowflake';
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+  try {
+    const session = await auth();
+    if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
-  const body = await request.json();
-  const { patientId, patientName, stageId, whoPresent, checklistResponses, questionResponses, comments, actions } = body;
+    const body = await request.json();
+    const { patientId, patientName, stageId, whoPresent, questionResponses, comments, actions } = body;
 
-  // Insert session and retrieve the generated SESSION_ID
-  const sessionRows = await query<{ SESSION_ID: number }>(
-    `INSERT INTO SESSIONS (PATIENT_ID, PATIENT_NAME, STAGE_ID, USER_ID, SITE_ID, STATUS, WHO_PRESENT, STARTED_AT)
-     VALUES (?, ?, ?, ?, ?, 'COMPLETED', ?, CURRENT_TIMESTAMP())
-     RETURNING SESSION_ID`,
-    [patientId, patientName, stageId, session.user.id, session.user.siteId, whoPresent]
-  );
-
-  const sessionId = sessionRows[0].SESSION_ID;
-
-  // Checklist responses
-  if (checklistResponses?.length) {
-    for (const r of checklistResponses) {
-      await query(
-        `INSERT INTO CHECKLIST_RESPONSES (SESSION_ID, ITEM_ID, IS_CHECKED, CREATED_AT) VALUES (?, ?, ?, CURRENT_TIMESTAMP())`,
-        [sessionId, r.itemId, r.checked]
-      );
-    }
-  }
-
-  // Question responses
-  if (questionResponses?.length) {
-    for (const r of questionResponses) {
-      await query(
-        `INSERT INTO QUESTION_RESPONSES (SESSION_ID, QUESTION_ID, SCORE, CREATED_AT) VALUES (?, ?, ?, CURRENT_TIMESTAMP())`,
-        [sessionId, r.questionId, r.score]
-      );
-    }
-  }
-
-  // Comments
-  if (comments?.trim()) {
+    // Insert session — Snowflake doesn't support RETURNING, so we query back immediately
     await query(
-      `INSERT INTO COMMENTS (SESSION_ID, COMMENT_TEXT, CREATED_AT) VALUES (?, ?, CURRENT_TIMESTAMP())`,
-      [sessionId, comments.trim()]
+      `INSERT INTO ${FB}.SESSIONS (PATIENT_ID, PATIENT_NAME, STAGE_ID, USER_ID, SITE_ID, STATUS, WHO_PRESENT, STARTED_AT)
+       VALUES (?, ?, ?, ?, ?, 'COMPLETED', ?, CURRENT_TIMESTAMP())`,
+      [patientId, patientName, stageId, session.user.id, session.user.siteId, whoPresent]
     );
-  }
 
-  // Actions
-  if (actions?.length) {
-    for (const a of actions) {
+    const sessionRows = await query<{ SESSION_ID: number }>(
+      `SELECT MAX(SESSION_ID) AS SESSION_ID
+       FROM ${FB}.SESSIONS
+       WHERE USER_ID = ? AND PATIENT_ID = ? AND STAGE_ID = ?`,
+      [session.user.id, patientId, stageId]
+    );
+
+    const sessionId = sessionRows[0].SESSION_ID;
+
+    // Question responses
+    if (questionResponses?.length) {
+      for (const r of questionResponses) {
+        await query(
+          `INSERT INTO ${FB}.QUESTION_RESPONSES (SESSION_ID, QUESTION_ID, SCORE, CREATED_AT) VALUES (?, ?, ?, CURRENT_TIMESTAMP())`,
+          [sessionId, r.questionId, r.score]
+        );
+      }
+    }
+
+    // Comments
+    if (comments?.trim()) {
       await query(
-        `INSERT INTO ACTIONS (SESSION_ID, USER_ID, PATIENT_ID, ACTION_TEXT, STATUS, CREATED_AT) VALUES (?, ?, ?, ?, 'OPEN', CURRENT_TIMESTAMP())`,
-        [sessionId, session.user.id, patientId, a.text]
+        `INSERT INTO ${FB}.COMMENTS (SESSION_ID, COMMENT_TEXT, CREATED_AT) VALUES (?, ?, CURRENT_TIMESTAMP())`,
+        [sessionId, comments.trim()]
       );
     }
-  }
 
-  return NextResponse.json({ sessionId }, { status: 201 });
+    // Actions
+    if (actions?.length) {
+      for (const a of actions) {
+        await query(
+          `INSERT INTO ${FB}.ACTIONS (SESSION_ID, USER_ID, PATIENT_ID, ACTION_TEXT, STATUS, CREATED_AT) VALUES (?, ?, ?, ?, 'OPEN', CURRENT_TIMESTAMP())`,
+          [sessionId, session.user.id, patientId, a.text]
+        );
+      }
+    }
+
+    return NextResponse.json({ sessionId }, { status: 201 });
+  } catch (err) {
+    console.error('[/api/sessions]', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }

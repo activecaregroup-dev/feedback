@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 
 interface Prompt {
   PROMPT_ID: number;
@@ -67,6 +68,14 @@ function GuidanceContent() {
       <div className="mx-auto max-w-2xl space-y-8">
 
         <div>
+          <button
+            onClick={() => router.push(`/session/stage-select?patientId=${patientId}&patientName=${encodeURIComponent(patientName)}`)}
+            className="mb-5 flex w-fit items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-opacity hover:opacity-70"
+            style={{ backgroundColor: '#141419', border: '1px solid #1e1e2a', color: '#fff' }}
+          >
+            <ArrowLeft size={15} />
+            Back
+          </button>
           <p className="text-sm" style={{ color: SECONDARY }}>Conversation guide</p>
           <h1 className="text-2xl font-semibold" style={{ color: '#fff' }}>{patientName}</h1>
         </div>
@@ -147,13 +156,25 @@ function GuidanceContent() {
           </section>
         )}
 
-        <button
-          onClick={proceed}
-          className="w-full rounded-xl px-5 py-5 text-lg font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ backgroundColor: ACCENT }}
-        >
-          Conversation complete - capture feedback
-        </button>
+        {(() => {
+          const allTicked = checklist.length === 0 || checklist.every((item) => checked[item.ITEM_ID]);
+          return (
+            <button
+              onClick={proceed}
+              disabled={!allTicked}
+              className="w-full rounded-xl px-5 py-5 text-lg font-semibold text-white transition-opacity"
+              style={{
+                backgroundColor: allTicked ? ACCENT : '#2a2a35',
+                color: allTicked ? '#fff' : SECONDARY,
+                cursor: allTicked ? 'pointer' : 'not-allowed',
+              }}
+            >
+              {allTicked
+                ? 'Conversation complete — capture feedback'
+                : `Tick all checklist items to continue (${checklist.filter((i) => checked[i.ITEM_ID]).length}/${checklist.length})`}
+            </button>
+          );
+        })()}
       </div>
     </div>
   );

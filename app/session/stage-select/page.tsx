@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { STAGE_CONFIG, STAGE_ORDERS } from '@/lib/stage-config';
-import { CheckCircle, Lock, ChevronRight } from 'lucide-react';
+import { CheckCircle, Lock, ChevronRight, ArrowLeft } from 'lucide-react';
 
 interface StageRow {
   STAGE_ID: number;
@@ -76,10 +76,11 @@ function StageSelectContent() {
         <div className="mb-8">
           <button
             onClick={() => router.push('/dashboard')}
-            className="mb-4 text-sm transition-opacity hover:opacity-70"
-            style={{ color: SECONDARY }}
+            className="mb-5 flex w-fit items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-opacity hover:opacity-70"
+            style={{ backgroundColor: '#141419', border: '1px solid #1e1e2a', color: '#fff' }}
           >
-            Back to dashboard
+            <ArrowLeft size={15} />
+            Dashboard
           </button>
           <p className="text-sm" style={{ color: SECONDARY }}>Select stage</p>
           <h1 className="text-2xl font-semibold" style={{ color: '#fff' }}>{patientName}</h1>

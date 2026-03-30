@@ -16,3 +16,8 @@ body {
   background-color: var(--color-bg);
   color: #ffffff;
 }
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(55%) sepia(80%) saturate(600%) hue-rotate(340deg);
+  cursor: pointer;
+}
