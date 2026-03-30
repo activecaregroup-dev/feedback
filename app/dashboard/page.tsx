@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { STAGE_CONFIG, STAGE_ORDERS } from '@/lib/stage-config';
-import { CheckCircle, AlertTriangle, MessageSquare } from 'lucide-react';
+import { CheckCircle, AlertTriangle, MessageSquare, Users } from 'lucide-react';
 
 interface Patient {
   PATIENT_ID: number;
@@ -128,6 +128,21 @@ export default function DashboardPage() {
 
       {/* Left: patient grid */}
       <div className="flex flex-1 flex-col overflow-hidden" style={{ borderRight: BORDER }}>
+
+        {/* Top bar */}
+        <div
+          className="flex items-center justify-between px-4 py-3 shrink-0"
+          style={{ borderBottom: BORDER, backgroundColor: CARD_BG }}
+        >
+          <button
+            onClick={() => router.push('/patients')}
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-opacity hover:opacity-80"
+            style={{ backgroundColor: '#1e1e2a', color: '#fff', border: BORDER }}
+          >
+            <Users size={14} />
+            Manage patients
+          </button>
+        </div>
 
         {/* Stage filter bar */}
         <div
