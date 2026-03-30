@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Active Neuro — Patient Feedback",
+  title: "Active Neuro - Patient Feedback",
   description: "Patient experience capture for Active Neuro",
 };
 

@@ -170,7 +170,7 @@ function GuidanceContent() {
               }}
             >
               {allTicked
-                ? 'Conversation complete — capture feedback'
+                ? 'Conversation complete - capture feedback'
                 : `Tick all checklist items to continue (${checklist.filter((i) => checked[i.ITEM_ID]).length}/${checklist.length})`}
             </button>
           );

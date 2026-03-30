@@ -226,7 +226,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Right: sidebar */}
-      <div className="w-80 shrink-0 overflow-y-auto" style={{ backgroundColor: '#0a0a0f' }}>
+      <div className="shrink-0 overflow-y-auto" style={{ width: 360, backgroundColor: '#0a0a0f' }}>
 
         {/* Actions */}
         <SidebarSection

@@ -50,14 +50,17 @@ function FeedbackContent() {
   const [actions, setActions] = useState<Action[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [myName, setMyName] = useState('');
 
   useEffect(() => {
-    fetch(`/api/questions?stageId=${stageId}`)
-      .then((r) => r.json())
-      .then((q) => {
-        setQuestions(q);
-        setLoading(false);
-      });
+    Promise.all([
+      fetch(`/api/questions?stageId=${stageId}`).then((r) => r.json()),
+      fetch('/api/me').then((r) => r.ok ? r.json() : null),
+    ]).then(([q, me]) => {
+      setQuestions(q);
+      if (me?.name) setMyName(me.name);
+      setLoading(false);
+    });
   }, [stageId]);
 
   function setScore(questionId: number, score: number) {
@@ -240,14 +243,30 @@ function FeedbackContent() {
                 style={{ ...INPUT_STYLE, borderRadius: '0.5rem' }}
               />
               <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={action.assignedTo}
-                  onChange={(e) => updateAction(i, 'assignedTo', e.target.value)}
-                  placeholder="Assigned to"
-                  className="flex-1 rounded-lg px-4 py-3 text-base outline-none"
-                  style={{ ...INPUT_STYLE, borderRadius: '0.5rem' }}
-                />
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={action.assignedTo}
+                    onChange={(e) => updateAction(i, 'assignedTo', e.target.value)}
+                    placeholder="Assigned to"
+                    className="w-full rounded-lg px-4 py-3 text-base outline-none"
+                    style={{ ...INPUT_STYLE, borderRadius: '0.5rem', paddingRight: '3.5rem' }}
+                  />
+                  {myName && (
+                    <button
+                      type="button"
+                      onClick={() => updateAction(i, 'assignedTo', myName)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded text-xs font-semibold transition-opacity hover:opacity-80"
+                      style={{
+                        backgroundColor: action.assignedTo === myName ? ACCENT : '#1e1e2a',
+                        color: action.assignedTo === myName ? '#fff' : SECONDARY,
+                        padding: '3px 7px',
+                      }}
+                    >
+                      Me
+                    </button>
+                  )}
+                </div>
                 <input
                   type="date"
                   value={action.dueDate}
