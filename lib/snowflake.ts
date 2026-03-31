@@ -41,11 +41,7 @@ function getConnection(): Promise<Connection> {
 
     let privateKey: string;
     try {
-      const pem = normalisePrivateKey(rawKey);
-      // Re-export via Node crypto so OpenSSL 3 (Node 18+) accepts the key format
-      const { createPrivateKey } = require('crypto') as typeof import('crypto');
-      privateKey = createPrivateKey({ key: pem, format: 'pem' })
-        .export({ type: 'pkcs8', format: 'pem' }) as string;
+      privateKey = normalisePrivateKey(rawKey);
     } catch (err) {
       return reject(new Error(`Failed to parse SNOWFLAKE_PRIVATE_KEY: ${err}`));
     }

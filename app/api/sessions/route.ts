@@ -48,8 +48,8 @@ export async function POST(request: Request) {
     if (actions?.length) {
       for (const a of actions) {
         await query(
-          `INSERT INTO ${FB}.ACTIONS (SESSION_ID, USER_ID, PATIENT_ID, ACTION_TEXT, STATUS, CREATED_AT) VALUES (?, ?, ?, ?, 'OPEN', CURRENT_TIMESTAMP())`,
-          [sessionId, session.user.id, patientId, a.text]
+          `INSERT INTO ${FB}.ACTIONS (SESSION_ID, USER_ID, PATIENT_ID, ACTION_TEXT, ASSIGNED_TO, STATUS, CREATED_AT) VALUES (?, ?, ?, ?, ?, 'OPEN', CURRENT_TIMESTAMP())`,
+          [sessionId, session.user.id, patientId, a.text, a.assignedTo?.trim() || null]
         );
       }
     }

@@ -15,6 +15,7 @@ export async function GET() {
       STATUS: string;
       CREATED_AT: string;
       PATIENT_NAME: string;
+      ASSIGNED_TO: string | null;
     }>(
       `SELECT
          a.ACTION_ID,
@@ -23,7 +24,8 @@ export async function GET() {
          a.STATUS,
          a.CREATED_AT,
          a.PATIENT_ID,
-         p.PATIENT_NAME
+         p.PATIENT_NAME,
+         a.ASSIGNED_TO
        FROM ${FB}.ACTIONS a
        JOIN ${FB}.SESSIONS s ON s.SESSION_ID = a.SESSION_ID
        JOIN ${CN}.PATIENT p ON p.PATIENT_ID = a.PATIENT_ID
@@ -48,19 +50,51 @@ export async function PATCH(request: Request) {
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
-    const { actionId } = await request.json();
-    await query(
-      `UPDATE ${FB}.ACTIONS a
-       SET a.COMPLETED_AT = CURRENT_TIMESTAMP(), a.STATUS = 'COMPLETE'
-       WHERE a.ACTION_ID = ?
-         AND EXISTS (
-           SELECT 1 FROM ${FB}.PATIENT_ASSIGNMENTS pa
-           WHERE pa.PATIENT_ID = a.PATIENT_ID
-             AND pa.USER_ID = ?
-             AND pa.IS_ACTIVE = TRUE
-         )`,
-      [actionId, session.user.id]
-    );
+    const { actionId, assignedTo, actionText, complete } = await request.json();
+
+    if (complete) {
+      await query(
+        `UPDATE ${FB}.ACTIONS a
+         SET a.COMPLETED_AT = CURRENT_TIMESTAMP(), a.STATUS = 'COMPLETE'
+         WHERE a.ACTION_ID = ?
+           AND EXISTS (
+             SELECT 1 FROM ${FB}.PATIENT_ASSIGNMENTS pa
+             WHERE pa.PATIENT_ID = a.PATIENT_ID
+               AND pa.USER_ID = ?
+               AND pa.IS_ACTIVE = TRUE
+           )`,
+        [actionId, session.user.id]
+      );
+    } else if (assignedTo !== undefined) {
+      await query(
+        `UPDATE ${FB}.ACTIONS a
+         SET a.ASSIGNED_TO = ?
+         WHERE a.ACTION_ID = ?
+           AND EXISTS (
+             SELECT 1 FROM ${FB}.PATIENT_ASSIGNMENTS pa
+             WHERE pa.PATIENT_ID = a.PATIENT_ID
+               AND pa.USER_ID = ?
+               AND pa.IS_ACTIVE = TRUE
+           )`,
+        [assignedTo?.trim() || null, actionId, session.user.id]
+      );
+    } else if (actionText !== undefined) {
+      const trimmed = actionText?.trim();
+      if (trimmed) {
+        await query(
+          `UPDATE ${FB}.ACTIONS a
+           SET a.ACTION_TEXT = ?
+           WHERE a.ACTION_ID = ?
+             AND EXISTS (
+               SELECT 1 FROM ${FB}.PATIENT_ASSIGNMENTS pa
+               WHERE pa.PATIENT_ID = a.PATIENT_ID
+                 AND pa.USER_ID = ?
+                 AND pa.IS_ACTIVE = TRUE
+             )`,
+          [trimmed, actionId, session.user.id]
+        );
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

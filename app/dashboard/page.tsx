@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { STAGE_CONFIG, STAGE_ORDERS } from '@/lib/stage-config';
-import { CheckCircle, AlertTriangle, MessageSquare, Users, Search, Mail } from 'lucide-react';
+import { CheckCircle, AlertTriangle, MessageSquare, Users, Search, Mail, Pencil, X } from 'lucide-react';
 
 interface Patient {
   PATIENT_ID: number;
@@ -18,6 +18,7 @@ interface Action {
   ACTION_TEXT: string;
   STATUS: string;
   PATIENT_NAME: string;
+  ASSIGNED_TO: string | null;
 }
 
 interface DueItem {
@@ -51,6 +52,12 @@ export default function DashboardPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [stageFilter, setStageFilter] = useState<number | null>(null);
   const [completing, setCompleting] = useState<number | null>(null);
+  const [editingAssignedTo, setEditingAssignedTo] = useState<number | null>(null);
+  const [assignedToValue, setAssignedToValue] = useState('');
+  const [editingAction, setEditingAction] = useState<Action | null>(null);
+  const [modalText, setModalText] = useState('');
+  const [modalAssignedTo, setModalAssignedTo] = useState('');
+  const [modalSaving, setModalSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [userEmail, setUserEmail] = useState('');
 
@@ -94,10 +101,52 @@ export default function DashboardPage() {
     await fetch('/api/actions', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ actionId }),
+      body: JSON.stringify({ actionId, complete: true }),
     });
     setActions((prev) => prev.filter((a) => a.ACTION_ID !== actionId));
     setCompleting(null);
+  }
+
+  function openEditModal(action: Action) {
+    setEditingAction(action);
+    setModalText(action.ACTION_TEXT);
+    setModalAssignedTo(action.ASSIGNED_TO ?? '');
+  }
+
+  async function saveModal() {
+    if (!editingAction || !modalText.trim()) return;
+    setModalSaving(true);
+    const actionId = editingAction.ACTION_ID;
+    const newText = modalText.trim();
+    const newAssignedTo = modalAssignedTo.trim() || null;
+    await Promise.all([
+      fetch('/api/actions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionId, actionText: newText }),
+      }),
+      fetch('/api/actions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionId, assignedTo: newAssignedTo }),
+      }),
+    ]);
+    setActions((prev) => prev.map((a) =>
+      a.ACTION_ID === actionId ? { ...a, ACTION_TEXT: newText, ASSIGNED_TO: newAssignedTo } : a
+    ));
+    setModalSaving(false);
+    setEditingAction(null);
+  }
+
+  async function saveAssignedTo(actionId: number, value: string) {
+    setEditingAssignedTo(null);
+    const trimmed = value.trim() || null;
+    setActions((prev) => prev.map((a) => a.ACTION_ID === actionId ? { ...a, ASSIGNED_TO: trimmed } : a));
+    await fetch('/api/actions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actionId, assignedTo: trimmed }),
+    });
   }
 
   // Figure out next due stage order per patient (for card badge + filter)
@@ -129,6 +178,7 @@ export default function DashboardPage() {
   }
 
   return (
+    <>
     <div className="flex h-screen overflow-hidden" style={{ backgroundColor: '#0a0a0f' }}>
 
       {/* Left: patient grid */}
@@ -271,15 +321,48 @@ export default function DashboardPage() {
               <div className="flex-1 space-y-0.5">
                 <p className="text-xs font-medium" style={{ color: SECONDARY }}>{a.PATIENT_NAME}</p>
                 <p className="text-sm leading-snug" style={{ color: '#fff' }}>{a.ACTION_TEXT}</p>
+                {editingAssignedTo === a.ACTION_ID ? (
+                  <input
+                    autoFocus
+                    value={assignedToValue}
+                    onChange={(e) => setAssignedToValue(e.target.value)}
+                    onBlur={() => saveAssignedTo(a.ACTION_ID, assignedToValue)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveAssignedTo(a.ACTION_ID, assignedToValue);
+                      if (e.key === 'Escape') setEditingAssignedTo(null);
+                    }}
+                    placeholder="Assign to..."
+                    className="w-full rounded px-2 py-0.5 text-xs outline-none"
+                    style={{ backgroundColor: '#1e1e2a', border: BORDER, color: '#fff', caretColor: ACCENT }}
+                  />
+                ) : (
+                  <button
+                    onClick={() => { setEditingAssignedTo(a.ACTION_ID); setAssignedToValue(a.ASSIGNED_TO ?? ''); }}
+                    className="text-xs transition-opacity hover:opacity-70 text-left"
+                    style={{ color: SECONDARY }}
+                  >
+                    {a.ASSIGNED_TO ? `Assigned to: ${a.ASSIGNED_TO}` : '+ assign'}
+                  </button>
+                )}
               </div>
-              <button
-                onClick={() => completeAction(a.ACTION_ID)}
-                disabled={completing === a.ACTION_ID}
-                className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-                style={{ backgroundColor: '#38bdf8', color: '#0a0a0f' }}
-              >
-                {completing === a.ACTION_ID ? '...' : 'Done'}
-              </button>
+              <div className="flex shrink-0 flex-col gap-1">
+                <button
+                  onClick={() => completeAction(a.ACTION_ID)}
+                  disabled={completing === a.ACTION_ID}
+                  className="rounded-md px-2 py-1 text-xs font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+                  style={{ backgroundColor: '#38bdf8', color: '#0a0a0f' }}
+                >
+                  {completing === a.ACTION_ID ? '...' : 'Done'}
+                </button>
+                <button
+                  onClick={() => openEditModal(a)}
+                  className="flex items-center justify-center rounded-md p-1 transition-opacity hover:opacity-70"
+                  style={{ backgroundColor: '#1e1e2a', color: SECONDARY }}
+                  title="Edit action"
+                >
+                  <Pencil size={12} />
+                </button>
+              </div>
             </div>
           ))}
         </SidebarSection>
@@ -341,6 +424,67 @@ export default function DashboardPage() {
 
       </div>
     </div>
+
+    {/* Edit action modal */}
+    {editingAction && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+        onClick={(e) => { if (e.target === e.currentTarget) setEditingAction(null); }}
+      >
+        <div
+          className="w-full max-w-md rounded-2xl p-5 space-y-4"
+          style={{ backgroundColor: CARD_BG, border: BORDER }}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold" style={{ color: '#fff' }}>Edit action</p>
+            <button onClick={() => setEditingAction(null)} style={{ color: SECONDARY }}>
+              <X size={18} />
+            </button>
+          </div>
+          <p className="text-xs font-medium" style={{ color: SECONDARY }}>{editingAction.PATIENT_NAME}</p>
+          <div className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: SECONDARY }}>Action</label>
+            <textarea
+              autoFocus
+              value={modalText}
+              onChange={(e) => setModalText(e.target.value)}
+              rows={4}
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none resize-none"
+              style={{ backgroundColor: '#1e1e2a', border: BORDER, color: '#fff', caretColor: ACCENT }}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: SECONDARY }}>Assigned to</label>
+            <input
+              value={modalAssignedTo}
+              onChange={(e) => setModalAssignedTo(e.target.value)}
+              placeholder="Name..."
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+              style={{ backgroundColor: '#1e1e2a', border: BORDER, color: '#fff', caretColor: ACCENT }}
+            />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={() => setEditingAction(null)}
+              className="flex-1 rounded-xl py-3 text-sm font-semibold transition-opacity hover:opacity-80"
+              style={{ backgroundColor: '#1e1e2a', color: SECONDARY }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={saveModal}
+              disabled={modalSaving || !modalText.trim()}
+              className="flex-1 rounded-xl py-3 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-40"
+              style={{ backgroundColor: ACCENT, color: '#fff' }}
+            >
+              {modalSaving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
