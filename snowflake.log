@@ -894,3 +894,47 @@
 {"level":"INFO","message":"[12:28:17.109 AM]: Connection[id: 494043a7-db58-41cd-a20f-275199805674] - connection established successfully after 85.4 milliseconds"}
 {"level":"INFO","message":"[12:28:17.115 AM]: Connection[id: e3e7bf6b-6f25-47b6-9823-31c926c4c078] - connection established successfully after 77.91 milliseconds"}
 {"level":"INFO","message":"[12:28:17.150 AM]: Connection[id: 1319f99a-9d79-4d5d-8bee-9bec1c298b8e] - connection established successfully after 97.73 milliseconds"}
+{"level":"INFO","message":"[12:54:28.254 AM]: Creating new connection object"}
+{"level":"INFO","message":"[12:54:28.276 AM]: Creating Connection[id: 2df5d5ca-92ab-4b0f-9149-91b3dc90218f] with host: ik70694.uk-south.azure.snowflakecomputing.com, account: ik70694, accessUrl: https://ik70694.uk-south.azure.snowflakecomputing.com, user: FEEDBACK_SVC, role: undefined, database: DATAOPS_DEV, schema: COLLECTION_FEEDBACK, warehouse: COMPUTE_WH, proxy was not configured, password is not provided, region: uk-south.azure, authenticator: SNOWFLAKE_JWT, ocsp mode: FAIL_OPEN, os: win32, os version: 10.0.26200"}
+{"level":"INFO","message":"[12:54:28.278 AM]: Connection[id: 2df5d5ca-92ab-4b0f-9149-91b3dc90218f] additional details: passcode in password is provided, passcode is not provided, private key is provided, application: undefined, client name: snowflake-sdk, client version: 2.3.6, retry timeout: 300, private key path: undefined, private key pass is not provided, client store temporary credential: false, browser response timeout: 120000"}
+{"level":"INFO","message":"[12:54:28.280 AM]: Connection[id: 2df5d5ca-92ab-4b0f-9149-91b3dc90218f] - connection object created successfully."}
+{"level":"INFO","message":"[12:54:28.282 AM]: Connection[id: 2df5d5ca-92ab-4b0f-9149-91b3dc90218f] - async connecting. Associated Snowflake domain: GLOBAL"}
+{"level":"INFO","message":"[12:54:28.554 AM]: Trying to initialize Easy Logging"}
+{"level":"INFO","message":"[12:54:28.564 AM]: Creating new connection object"}
+{"level":"INFO","message":"[12:54:28.568 AM]: Creating Connection[id: 09950e07-0356-46b1-acc5-32bb0eb0286b] with host: ik70694.uk-south.azure.snowflakecomputing.com, account: ik70694, accessUrl: https://ik70694.uk-south.azure.snowflakecomputing.com, user: FEEDBACK_SVC, role: undefined, database: DATAOPS_DEV, schema: COLLECTION_FEEDBACK, warehouse: COMPUTE_WH, proxy was not configured, password is not provided, region: uk-south.azure, authenticator: SNOWFLAKE_JWT, ocsp mode: FAIL_OPEN, os: win32, os version: 10.0.26200"}
+{"level":"INFO","message":"[12:54:28.569 AM]: Connection[id: 09950e07-0356-46b1-acc5-32bb0eb0286b] additional details: passcode in password is provided, passcode is not provided, private key is provided, application: undefined, client name: snowflake-sdk, client version: 2.3.6, retry timeout: 300, private key path: undefined, private key pass is not provided, client store temporary credential: false, browser response timeout: 120000"}
+{"level":"INFO","message":"[12:54:28.570 AM]: Connection[id: 09950e07-0356-46b1-acc5-32bb0eb0286b] - connection object created successfully."}
+{"level":"INFO","message":"[12:54:28.571 AM]: Connection[id: 09950e07-0356-46b1-acc5-32bb0eb0286b] - async connecting. Associated Snowflake domain: GLOBAL"}
+{"level":"INFO","message":"[12:54:28.572 AM]: Trying to initialize Easy Logging"}
+{"level":"INFO","message":"[12:54:28.583 AM]: Creating new connection object"}
+{"level":"INFO","message":"[12:54:28.586 AM]: Creating Connection[id: 9a86bbec-db02-40bf-b84e-67e9021fed3e] with host: ik70694.uk-south.azure.snowflakecomputing.com, account: ik70694, accessUrl: https://ik70694.uk-south.azure.snowflakecomputing.com, user: FEEDBACK_SVC, role: undefined, database: DATAOPS_DEV, schema: COLLECTION_FEEDBACK, warehouse: COMPUTE_WH, proxy was not configured, password is not provided, region: uk-south.azure, authenticator: SNOWFLAKE_JWT, ocsp mode: FAIL_OPEN, os: win32, os version: 10.0.26200"}
+{"level":"INFO","message":"[12:54:28.587 AM]: Connection[id: 9a86bbec-db02-40bf-b84e-67e9021fed3e] additional details: passcode in password is provided, passcode is not provided, private key is provided, application: undefined, client name: snowflake-sdk, client version: 2.3.6, retry timeout: 300, private key path: undefined, private key pass is not provided, client store temporary credential: false, browser response timeout: 120000"}
+{"level":"INFO","message":"[12:54:28.587 AM]: Connection[id: 9a86bbec-db02-40bf-b84e-67e9021fed3e] - connection object created successfully."}
+{"level":"INFO","message":"[12:54:28.588 AM]: Connection[id: 9a86bbec-db02-40bf-b84e-67e9021fed3e] - async connecting. Associated Snowflake domain: GLOBAL"}
+{"level":"INFO","message":"[12:54:28.588 AM]: Trying to initialize Easy Logging"}
+{"level":"INFO","message":"[12:54:28.590 AM]: Creating new connection object"}
+{"level":"INFO","message":"[12:54:28.593 AM]: Creating Connection[id: 73aabaf8-81b5-46fc-ac59-cd567dad7cf3] with host: ik70694.uk-south.azure.snowflakecomputing.com, account: ik70694, accessUrl: https://ik70694.uk-south.azure.snowflakecomputing.com, user: FEEDBACK_SVC, role: undefined, database: DATAOPS_DEV, schema: COLLECTION_FEEDBACK, warehouse: COMPUTE_WH, proxy was not configured, password is not provided, region: uk-south.azure, authenticator: SNOWFLAKE_JWT, ocsp mode: FAIL_OPEN, os: win32, os version: 10.0.26200"}
+{"level":"INFO","message":"[12:54:28.594 AM]: Connection[id: 73aabaf8-81b5-46fc-ac59-cd567dad7cf3] additional details: passcode in password is provided, passcode is not provided, private key is provided, application: undefined, client name: snowflake-sdk, client version: 2.3.6, retry timeout: 300, private key path: undefined, private key pass is not provided, client store temporary credential: false, browser response timeout: 120000"}
+{"level":"INFO","message":"[12:54:28.594 AM]: Connection[id: 73aabaf8-81b5-46fc-ac59-cd567dad7cf3] - connection object created successfully."}
+{"level":"INFO","message":"[12:54:28.595 AM]: Connection[id: 73aabaf8-81b5-46fc-ac59-cd567dad7cf3] - async connecting. Associated Snowflake domain: GLOBAL"}
+{"level":"INFO","message":"[12:54:28.595 AM]: Trying to initialize Easy Logging"}
+{"level":"INFO","message":"[12:54:28.603 AM]: No client config detected."}
+{"level":"INFO","message":"[12:54:28.606 AM]: No config file path found. Client config will not be used."}
+{"level":"INFO","message":"[12:54:28.606 AM]: Easy Logging is disabled as no config has been found"}
+{"level":"INFO","message":"[12:54:28.632 AM]: Connection[id: 2df5d5ca-92ab-4b0f-9149-91b3dc90218f] - authentication successful using: SNOWFLAKE_JWT"}
+{"level":"INFO","message":"[12:54:28.669 AM]: No client config detected."}
+{"level":"INFO","message":"[12:54:28.670 AM]: No config file path found. Client config will not be used."}
+{"level":"INFO","message":"[12:54:28.670 AM]: Easy Logging is disabled as no config has been found"}
+{"level":"INFO","message":"[12:54:28.674 AM]: Connection[id: 09950e07-0356-46b1-acc5-32bb0eb0286b] - authentication successful using: SNOWFLAKE_JWT"}
+{"level":"INFO","message":"[12:54:28.683 AM]: No client config detected."}
+{"level":"INFO","message":"[12:54:28.684 AM]: No config file path found. Client config will not be used."}
+{"level":"INFO","message":"[12:54:28.684 AM]: Easy Logging is disabled as no config has been found"}
+{"level":"INFO","message":"[12:54:28.689 AM]: Connection[id: 9a86bbec-db02-40bf-b84e-67e9021fed3e] - authentication successful using: SNOWFLAKE_JWT"}
+{"level":"INFO","message":"[12:54:28.694 AM]: No client config detected."}
+{"level":"INFO","message":"[12:54:28.695 AM]: No config file path found. Client config will not be used."}
+{"level":"INFO","message":"[12:54:28.695 AM]: Easy Logging is disabled as no config has been found"}
+{"level":"INFO","message":"[12:54:28.700 AM]: Connection[id: 73aabaf8-81b5-46fc-ac59-cd567dad7cf3] - authentication successful using: SNOWFLAKE_JWT"}
+{"level":"INFO","message":"[12:54:29.514 AM]: Connection[id: 9a86bbec-db02-40bf-b84e-67e9021fed3e] - connection established successfully after 926.5 milliseconds"}
+{"level":"INFO","message":"[12:54:29.523 AM]: Connection[id: 09950e07-0356-46b1-acc5-32bb0eb0286b] - connection established successfully after 952.24 milliseconds"}
+{"level":"INFO","message":"[12:54:29.529 AM]: Connection[id: 2df5d5ca-92ab-4b0f-9149-91b3dc90218f] - connection established successfully after 1247.53 milliseconds"}
+{"level":"INFO","message":"[12:54:29.572 AM]: Connection[id: 73aabaf8-81b5-46fc-ac59-cd567dad7cf3] - connection established successfully after 977.25 milliseconds"}
