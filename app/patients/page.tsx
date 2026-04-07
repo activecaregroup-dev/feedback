@@ -210,11 +210,21 @@ export default function PatientsPage() {
                   <PatientCard key={p.PATIENT_ID} dimmed>
                     <div className="flex min-w-0 flex-1 flex-col justify-center px-2.5 py-2">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <span
-                          className="shrink-0 flex items-center justify-center rounded-full font-semibold"
-                          style={{ width: 26, height: 26, backgroundColor: '#1e1e2a', color: SECONDARY, border: BORDER, fontSize: 11 }}
-                        >
-                          {initials(p.ASSIGNED_USER_NAME)}
+                        <span className="relative group shrink-0">
+                          <span
+                            className="flex items-center justify-center rounded-full font-semibold"
+                            style={{ width: 26, height: 26, backgroundColor: '#1e1e2a', color: SECONDARY, border: BORDER, fontSize: 11 }}
+                          >
+                            {initials(p.ASSIGNED_USER_NAME)}
+                          </span>
+                          {p.ASSIGNED_USER_NAME && (
+                            <span
+                              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10"
+                              style={{ backgroundColor: '#1e1e2a', color: '#fff', border: BORDER }}
+                            >
+                              {p.ASSIGNED_USER_NAME}
+                            </span>
+                          )}
                         </span>
                         <p className="truncate text-xs font-semibold leading-tight" style={{ color: '#fff' }}>{p.PATIENT_NAME}</p>
                         {StageIcon && stageCfg && (
