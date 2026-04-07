@@ -8,9 +8,11 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const isAuthRoute = req.nextUrl.pathname.startsWith('/login');
   const isApiAuth = req.nextUrl.pathname.startsWith('/api/auth');
+  const isPasswordPage = req.nextUrl.pathname === '/password';
 
   if (isApiAuth) return NextResponse.next();
   if (isAuthRoute) return NextResponse.next();
+  if (isPasswordPage) return NextResponse.next();
   if (!isLoggedIn) {
     return NextResponse.redirect(new URL('/login', req.nextUrl));
   }
