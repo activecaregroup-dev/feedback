@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
     const body = await request.json();
-    const { patientId, patientName, stageId, whoPresent, questionResponses, comments, actions } = body;
+    const { patientId, patientName, stageId, whoPresent, questionResponses, promptNotes, comments, actions } = body;
 
     // Insert session — Snowflake doesn't support RETURNING, so we query back immediately
     await query(
@@ -30,8 +30,18 @@ export async function POST(request: Request) {
     if (questionResponses?.length) {
       for (const r of questionResponses) {
         await query(
-          `INSERT INTO ${FB}.QUESTION_RESPONSES (SESSION_ID, QUESTION_ID, SCORE, CREATED_AT) VALUES (?, ?, ?, CURRENT_TIMESTAMP())`,
-          [sessionId, r.questionId, r.score]
+          `INSERT INTO ${FB}.QUESTION_RESPONSES (SESSION_ID, QUESTION_ID, SCORE, NOTE, CREATED_AT) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())`,
+          [sessionId, r.questionId, r.score, r.note ?? null]
+        );
+      }
+    }
+
+    // Prompt notes
+    if (promptNotes?.length) {
+      for (const pn of promptNotes) {
+        await query(
+          `INSERT INTO ${FB}.PROMPT_NOTES (SESSION_ID, PROMPT_ID, NOTE_TEXT, CREATED_AT) VALUES (?, ?, ?, CURRENT_TIMESTAMP())`,
+          [sessionId, pn.promptId, pn.note]
         );
       }
     }

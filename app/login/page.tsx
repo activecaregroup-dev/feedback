@@ -1,4 +1,5 @@
 import { signIn, auth } from '@/lib/auth';
+import { AuthError } from 'next-auth';
 import { redirect } from 'next/navigation';
 import Image from 'next/image';
 
@@ -86,10 +87,17 @@ export default async function LoginPage({
         <form
           action={async (formData: FormData) => {
             'use server';
-            await signIn('credentials', {
-              password: formData.get('password'),
-              redirectTo: '/dashboard',
-            });
+            try {
+              await signIn('credentials', {
+                password: formData.get('password'),
+                redirectTo: '/dashboard',
+              });
+            } catch (error) {
+              if (error instanceof AuthError) {
+                redirect('/login?error=CredentialsSignin');
+              }
+              throw error; // re-throw redirect (success path)
+            }
           }}
           className="space-y-2"
         >

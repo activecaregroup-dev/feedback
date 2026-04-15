@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Question {
   QUESTION_ID: number;
@@ -43,9 +43,12 @@ function FeedbackContent() {
   const patientName = searchParams.get('patientName') ?? 'Patient';
   const stageName = searchParams.get('stageName') ?? '';
   const checklistParam = searchParams.get('checklist') ?? '{}';
+  const promptNotesParam = searchParams.get('promptNotes') ?? '{}';
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [scores, setScores] = useState<Record<number, number>>({});
+  const [questionNotes, setQuestionNotes] = useState<Record<number, string>>({});
+  const [notesOpen, setNotesOpen] = useState<Record<number, boolean>>({});
   const [attendees, setAttendees] = useState('');
   const [comments, setComments] = useState('');
   const [actions, setActions] = useState<Action[]>([]);
@@ -66,6 +69,14 @@ function FeedbackContent() {
 
   function setScore(questionId: number, score: number) {
     setScores((prev) => ({ ...prev, [questionId]: score }));
+  }
+
+  function toggleNote(questionId: number) {
+    setNotesOpen((prev) => ({ ...prev, [questionId]: !prev[questionId] }));
+  }
+
+  function setQuestionNote(questionId: number, note: string) {
+    setQuestionNotes((prev) => ({ ...prev, [questionId]: note }));
   }
 
   function addAction() {
@@ -95,9 +106,15 @@ function FeedbackContent() {
       checked: isChecked,
     }));
 
+    const promptNotesObj: Record<string, string> = JSON.parse(decodeURIComponent(promptNotesParam));
+    const promptNotesList = Object.entries(promptNotesObj)
+      .filter(([, note]) => note.trim())
+      .map(([promptId, note]) => ({ promptId: Number(promptId), note: note.trim() }));
+
     const questionResponses = questions.map((q) => ({
       questionId: q.QUESTION_ID,
       score: scores[q.QUESTION_ID],
+      note: questionNotes[q.QUESTION_ID]?.trim() || null,
     }));
 
     const res = await fetch('/api/sessions', {
@@ -110,6 +127,7 @@ function FeedbackContent() {
         whoPresent: attendees,
         checklistResponses,
         questionResponses,
+        promptNotes: promptNotesList,
         comments,
         actions: actions.filter((a) => a.text.trim()),
       }),
@@ -153,7 +171,10 @@ function FeedbackContent() {
           <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: SECONDARY }}>
             Questions
           </h2>
-          {questions.map((q) => (
+          {questions.map((q) => {
+            const isOpen = notesOpen[q.QUESTION_ID] ?? false;
+            const hasNote = !!questionNotes[q.QUESTION_ID]?.trim();
+            return (
             <div
               key={q.QUESTION_ID}
               className="space-y-3 rounded-xl p-5"
@@ -180,8 +201,27 @@ function FeedbackContent() {
                   );
                 })}
               </div>
+              <button
+                onClick={() => toggleNote(q.QUESTION_ID)}
+                className="flex items-center gap-1.5 text-xs transition-opacity hover:opacity-80"
+                style={{ color: hasNote ? ACCENT : SECONDARY }}
+              >
+                {isOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                {hasNote ? 'Note added' : 'Add a note'}
+              </button>
+              {isOpen && (
+                <textarea
+                  value={questionNotes[q.QUESTION_ID] ?? ''}
+                  onChange={(e) => setQuestionNote(q.QUESTION_ID, e.target.value)}
+                  rows={3}
+                  placeholder="Add any context or detail about this response..."
+                  className="w-full px-4 py-3 text-sm outline-none resize-none rounded-lg"
+                  style={{ ...INPUT_STYLE, borderRadius: '0.5rem', caretColor: ACCENT }}
+                />
+              )}
             </div>
-          ))}
+            );
+          })}
         </section>
 
         {/* Who was present */}

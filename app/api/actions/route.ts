@@ -16,6 +16,8 @@ export async function GET() {
       CREATED_AT: string;
       PATIENT_NAME: string;
       ASSIGNED_TO: string | null;
+      LAST_EMAILED_TO: string | null;
+      LAST_EMAILED_AT: string | null;
     }>(
       `SELECT
          a.ACTION_ID,
@@ -25,7 +27,9 @@ export async function GET() {
          a.CREATED_AT,
          a.PATIENT_ID,
          p.PATIENT_NAME,
-         a.ASSIGNED_TO
+         a.ASSIGNED_TO,
+         le.EMAILED_TO   AS LAST_EMAILED_TO,
+         le.EMAILED_AT   AS LAST_EMAILED_AT
        FROM ${FB}.ACTIONS a
        JOIN ${FB}.SESSIONS s ON s.SESSION_ID = a.SESSION_ID
        JOIN ${CN}.PATIENT p ON p.PATIENT_ID = a.PATIENT_ID
@@ -33,6 +37,11 @@ export async function GET() {
          ON pa.PATIENT_ID = a.PATIENT_ID
         AND pa.USER_ID = ?
         AND pa.IS_ACTIVE = TRUE
+       LEFT JOIN (
+         SELECT ACTION_ID, EMAILED_TO, EMAILED_AT,
+                ROW_NUMBER() OVER (PARTITION BY ACTION_ID ORDER BY EMAILED_AT DESC) AS rn
+         FROM ${FB}.ACTION_EMAILS
+       ) le ON le.ACTION_ID = a.ACTION_ID AND le.rn = 1
        WHERE a.COMPLETED_AT IS NULL
        ORDER BY a.CREATED_AT DESC`,
       [session.user.id]

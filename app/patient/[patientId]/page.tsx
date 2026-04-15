@@ -15,6 +15,7 @@ interface ScoreRow {
   QUESTION_TEXT: string;
   SCORE: number;
   QUESTION_ORDER: number;
+  NOTE: string | null;
 }
 
 interface ActionRow {
@@ -22,6 +23,14 @@ interface ActionRow {
   ACTION_TEXT: string;
   STATUS: string;
   COMPLETED_AT: string | null;
+}
+
+interface PromptNoteRow {
+  SESSION_ID: number;
+  PROMPT_ID: number;
+  NOTE_TEXT: string;
+  THEME: string | null;
+  PROMPT_TEXT: string;
 }
 
 interface Stage {
@@ -36,6 +45,7 @@ interface Stage {
   scores: ScoreRow[];
   comments: string[];
   actions: ActionRow[];
+  promptNotes: PromptNoteRow[];
 }
 
 interface Patient {
@@ -160,7 +170,7 @@ export default function PatientJourneyPage() {
               const cfg = STAGE_CONFIG[stage.STAGE_ORDER];
               const StageIcon = cfg?.icon;
               const isExpanded = expanded.has(stage.STAGE_ID);
-              const hasDetail = stage.scores.length > 0 || stage.comments.length > 0 || stage.actions.length > 0;
+              const hasDetail = stage.scores.length > 0 || stage.comments.length > 0 || stage.actions.length > 0 || stage.promptNotes.length > 0;
 
               return (
                 <div key={stage.STAGE_ID} className="relative flex gap-4">
@@ -204,7 +214,7 @@ export default function PatientJourneyPage() {
                       }}
                     >
                       {/* Stage header row */}
-                      <button
+                      <div
                         className="flex w-full items-center justify-between gap-3 p-4 text-left"
                         onClick={() => stage.status === 'complete' && hasDetail && toggleExpand(stage.STAGE_ID)}
                         style={{ cursor: stage.status === 'complete' && hasDetail ? 'pointer' : 'default' }}
@@ -223,6 +233,16 @@ export default function PatientJourneyPage() {
                                   Avg {Number(stage.AVG_SCORE).toFixed(1)} / 5
                                 </p>
                               )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/session/${stage.SESSION_ID}?patientId=${patientId}`);
+                                }}
+                                className="text-xs font-medium transition-opacity hover:opacity-70"
+                                style={{ color: ACCENT }}
+                              >
+                                View
+                              </button>
                             </div>
                           )}
                           {stage.status === 'due' && (
@@ -248,7 +268,7 @@ export default function PatientJourneyPage() {
                             ? <ChevronUp size={16} style={{ color: SECONDARY, flexShrink: 0 }} />
                             : <ChevronDown size={16} style={{ color: SECONDARY, flexShrink: 0 }} />
                         )}
-                      </button>
+                      </div>
 
                       {/* Expanded detail */}
                       {stage.status === 'complete' && isExpanded && (
@@ -261,9 +281,32 @@ export default function PatientJourneyPage() {
                             <div className="pt-3 space-y-2">
                               <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: SECONDARY }}>Scores</p>
                               {stage.scores.map((s, i) => (
-                                <div key={i} className="flex items-start justify-between gap-3">
-                                  <p className="text-sm flex-1 leading-snug" style={{ color: '#fff' }}>{s.QUESTION_TEXT}</p>
-                                  <ScoreBar score={s.SCORE} />
+                                <div key={i} className="space-y-1">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <p className="text-sm flex-1 leading-snug" style={{ color: '#fff' }}>{s.QUESTION_TEXT}</p>
+                                    <ScoreBar score={s.SCORE} />
+                                  </div>
+                                  {s.NOTE && (
+                                    <p className="text-xs leading-snug pl-1" style={{ color: SECONDARY }}>
+                                      {s.NOTE}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Conversation notes */}
+                          {stage.promptNotes.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: SECONDARY }}>Conversation notes</p>
+                              {stage.promptNotes.map((pn, i) => (
+                                <div key={i} className="rounded-lg px-3 py-2 space-y-0.5" style={{ backgroundColor: '#1e1e2a' }}>
+                                  {pn.THEME && (
+                                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: ACCENT }}>{pn.THEME}</p>
+                                  )}
+                                  <p className="text-xs leading-snug" style={{ color: SECONDARY }}>{pn.PROMPT_TEXT}</p>
+                                  <p className="text-sm leading-snug" style={{ color: '#fff' }}>{pn.NOTE_TEXT}</p>
                                 </div>
                               ))}
                             </div>

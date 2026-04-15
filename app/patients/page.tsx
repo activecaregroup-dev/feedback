@@ -70,6 +70,10 @@ export default function PatientsPage() {
 
   useEffect(() => { loadPatients(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  function openPatientJourney(patientId: number) {
+    router.push(`/patient/${patientId}`);
+  }
+
   async function assign(patientId: number) {
     setBusy(patientId);
     try {
@@ -269,7 +273,7 @@ export default function PatientsPage() {
                   const stageCfg = p.NEXT_STAGE_ORDER ? STAGE_CONFIG[p.NEXT_STAGE_ORDER] : null;
                   const StageIcon = stageCfg?.icon;
                   return (
-                  <PatientCard key={p.PATIENT_ID}>
+                  <PatientCard key={p.PATIENT_ID} onClick={() => openPatientJourney(p.PATIENT_ID)}>
                     <div className="flex min-w-0 flex-1 flex-col justify-center px-2.5 py-2">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <p className="truncate text-xs font-semibold leading-tight" style={{ color: '#fff' }}>{p.PATIENT_NAME}</p>
@@ -382,10 +386,11 @@ function Section({
   );
 }
 
-function PatientCard({ children, dimmed }: { children: React.ReactNode; dimmed?: boolean }) {
+function PatientCard({ children, dimmed, onClick }: { children: React.ReactNode; dimmed?: boolean; onClick?: () => void }) {
   return (
     <div
-      className="flex rounded-xl"
+      onClick={onClick}
+      className={`flex rounded-xl ${onClick ? 'cursor-pointer' : ''}`}
       style={{ backgroundColor: '#141419', border: '1px solid #1e1e2a', opacity: dimmed ? 0.65 : 1 }}
     >
       {children}
@@ -410,7 +415,10 @@ function ActionStrip({
 }) {
   return (
     <button
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
       disabled={disabled}
       title={title}
       className="flex shrink-0 items-center justify-center transition-opacity hover:opacity-80 disabled:opacity-40"

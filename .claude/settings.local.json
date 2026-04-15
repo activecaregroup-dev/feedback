@@ -6,7 +6,9 @@
       "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir=false --import-alias=\"@/*\" --no-turbopack)",
       "Bash(mv feedback/CLAUDE.md /tmp/CLAUDE.md)",
       "Bash(npx create-next-app@latest feedback --typescript --tailwind --eslint --app --src-dir=false --import-alias=\"@/*\" --no-turbopack --yes)",
-      "Bash(mv /tmp/CLAUDE.md feedback/CLAUDE.md)"
+      "Bash(mv /tmp/CLAUDE.md feedback/CLAUDE.md)",
+      "Bash(mkdir -p \"c:\\\\Users\\\\claire.tasker\\\\Desktop\\\\feedback\\\\app\\\\api\\\\sessions\\\\[sessionId]\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\claire.tasker\\\\Desktop\\\\feedback\\\\app\\\\session\\\\[sessionId]\")"
     ]
   }
 }

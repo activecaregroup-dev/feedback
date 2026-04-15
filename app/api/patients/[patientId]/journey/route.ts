@@ -73,10 +73,11 @@ export async function GET(
       QUESTION_TEXT: string;
       SCORE: number;
       QUESTION_ORDER: number;
+      NOTE: string | null;
     }[] = [];
     if (sessionIds.length) {
       questionResponses = await query(
-        `SELECT qr.SESSION_ID, q.QUESTION_TEXT, qr.SCORE, q.QUESTION_ORDER
+        `SELECT qr.SESSION_ID, q.QUESTION_TEXT, qr.SCORE, q.QUESTION_ORDER, qr.NOTE
          FROM ${FB}.QUESTION_RESPONSES qr
          JOIN ${FB}.QUESTIONS q ON q.QUESTION_ID = qr.QUESTION_ID
          WHERE qr.SESSION_ID IN (${sessionIds.map(() => '?').join(',')})
@@ -92,6 +93,19 @@ export async function GET(
         `SELECT SESSION_ID, COMMENT_TEXT
          FROM ${FB}.COMMENTS
          WHERE SESSION_ID IN (${sessionIds.map(() => '?').join(',')})`,
+        sessionIds
+      );
+    }
+
+    // Prompt notes for all completed sessions
+    let promptNotes: { SESSION_ID: number; PROMPT_ID: number; NOTE_TEXT: string; THEME: string | null; PROMPT_TEXT: string }[] = [];
+    if (sessionIds.length) {
+      promptNotes = await query(
+        `SELECT pn.SESSION_ID, pn.PROMPT_ID, pn.NOTE_TEXT, cp.THEME, cp.PROMPT_TEXT
+         FROM ${FB}.PROMPT_NOTES pn
+         JOIN ${FB}.CONVERSATION_PROMPTS cp ON cp.PROMPT_ID = pn.PROMPT_ID
+         WHERE pn.SESSION_ID IN (${sessionIds.map(() => '?').join(',')})
+         ORDER BY pn.SESSION_ID, cp.PROMPT_ORDER`,
         sessionIds
       );
     }
@@ -126,6 +140,11 @@ export async function GET(
       if (!aBySession.has(a.SESSION_ID)) aBySession.set(a.SESSION_ID, []);
       aBySession.get(a.SESSION_ID)!.push(a);
     }
+    const pnBySession = new Map<number, typeof promptNotes>();
+    for (const pn of promptNotes) {
+      if (!pnBySession.has(pn.SESSION_ID)) pnBySession.set(pn.SESSION_ID, []);
+      pnBySession.get(pn.SESSION_ID)!.push(pn);
+    }
 
     // Build stage result
     let dueFound = false;
@@ -142,6 +161,7 @@ export async function GET(
           scores: qBySession.get(sess.SESSION_ID) ?? [],
           comments: cBySession.get(sess.SESSION_ID) ?? [],
           actions: aBySession.get(sess.SESSION_ID) ?? [],
+          promptNotes: pnBySession.get(sess.SESSION_ID) ?? [],
         };
       }
       if (!dueFound) {
@@ -156,6 +176,7 @@ export async function GET(
           scores: [],
           comments: [],
           actions: [],
+          promptNotes: [],
         };
       }
       return {
@@ -168,6 +189,7 @@ export async function GET(
         scores: [],
         comments: [],
         actions: [],
+        promptNotes: [],
       };
     });
 

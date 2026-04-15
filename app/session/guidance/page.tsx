@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Prompt {
   PROMPT_ID: number;
@@ -33,6 +33,8 @@ function GuidanceContent() {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [checked, setChecked] = useState<Record<number, boolean>>({});
+  const [promptNotes, setPromptNotes] = useState<Record<number, string>>({});
+  const [notesOpen, setNotesOpen] = useState<Record<number, boolean>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,10 +51,19 @@ function GuidanceContent() {
     setChecked((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
   }
 
+  function toggleNote(promptId: number) {
+    setNotesOpen((prev) => ({ ...prev, [promptId]: !prev[promptId] }));
+  }
+
+  function setPromptNote(promptId: number, note: string) {
+    setPromptNotes((prev) => ({ ...prev, [promptId]: note }));
+  }
+
   function proceed() {
     const checklistParam = encodeURIComponent(JSON.stringify(checked));
+    const promptNotesParam = encodeURIComponent(JSON.stringify(promptNotes));
     router.push(
-      `/session/feedback?patientId=${patientId}&stageId=${stageId}&patientName=${encodeURIComponent(patientName)}&stageName=${encodeURIComponent(stageName)}&checklist=${checklistParam}`
+      `/session/feedback?patientId=${patientId}&stageId=${stageId}&patientName=${encodeURIComponent(patientName)}&stageName=${encodeURIComponent(stageName)}&checklist=${checklistParam}&promptNotes=${promptNotesParam}`
     );
   }
 
@@ -88,25 +99,55 @@ function GuidanceContent() {
               Discussion prompts
             </h2>
             <ol className="space-y-3">
-              {prompts.map((p, i) => (
+              {prompts.map((p, i) => {
+                const isOpen = notesOpen[p.PROMPT_ID] ?? false;
+                const hasNote = !!promptNotes[p.PROMPT_ID]?.trim();
+                return (
                 <li
                   key={p.PROMPT_ID}
-                  className="flex gap-4 rounded-xl px-5 py-4"
+                  className="rounded-xl px-5 py-4 space-y-3"
                   style={{ backgroundColor: CARD_BG, border: BORDER }}
                 >
-                  <span className="mt-0.5 shrink-0 text-lg font-bold" style={{ color: ACCENT }}>
-                    {i + 1}
-                  </span>
-                  <div>
-                    {p.THEME && (
-                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide" style={{ color: ACCENT }}>
-                        {p.THEME}
-                      </p>
-                    )}
-                    <p className="text-base leading-relaxed" style={{ color: '#fff' }}>{p.PROMPT_TEXT}</p>
+                  <div className="flex gap-4">
+                    <span className="mt-0.5 shrink-0 text-lg font-bold" style={{ color: ACCENT }}>
+                      {i + 1}
+                    </span>
+                    <div className="flex-1">
+                      {p.THEME && (
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide" style={{ color: ACCENT }}>
+                          {p.THEME}
+                        </p>
+                      )}
+                      <p className="text-base leading-relaxed" style={{ color: '#fff' }}>{p.PROMPT_TEXT}</p>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => toggleNote(p.PROMPT_ID)}
+                    className="flex items-center gap-1.5 text-xs transition-opacity hover:opacity-80 ml-9"
+                    style={{ color: hasNote ? ACCENT : SECONDARY }}
+                  >
+                    {isOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                    {hasNote ? 'Note added' : 'Add a note'}
+                  </button>
+                  {isOpen && (
+                    <textarea
+                      value={promptNotes[p.PROMPT_ID] ?? ''}
+                      onChange={(e) => setPromptNote(p.PROMPT_ID, e.target.value)}
+                      rows={3}
+                      placeholder="Note anything relevant from this part of the conversation..."
+                      className="w-full px-4 py-3 text-sm outline-none resize-none rounded-lg"
+                      style={{
+                        backgroundColor: 'rgba(255,255,255,0.04)',
+                        border: BORDER,
+                        color: '#fff',
+                        borderRadius: '0.5rem',
+                        caretColor: ACCENT,
+                      }}
+                    />
+                  )}
                 </li>
-              ))}
+                );
+              })}
             </ol>
           </section>
         )}
