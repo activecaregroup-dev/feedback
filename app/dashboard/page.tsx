@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { STAGE_CONFIG, STAGE_ORDERS } from '@/lib/stage-config';
-import { CheckCircle, AlertTriangle, MessageSquare, Users, Search, Mail, Pencil, X, Send } from 'lucide-react';
+import { CheckCircle, AlertTriangle, MessageSquare, Users, Search, Mail, Pencil, X, Send, ChevronRight, Clock } from 'lucide-react';
 
 interface Patient {
   PATIENT_ID: number;
@@ -297,7 +297,19 @@ export default function DashboardPage() {
                 const nextOrder = dueStageByPatient.get(p.PATIENT_ID);
                 const stageCfg = nextOrder ? STAGE_CONFIG[nextOrder] : null;
                 const StageIcon = stageCfg?.icon;
+                const afterCfg = nextOrder ? STAGE_CONFIG[nextOrder + 1] : null;
+                const AfterIcon = afterCfg?.icon;
+                const prevCfg = nextOrder && nextOrder > 1 ? STAGE_CONFIG[nextOrder - 1] : null;
+                const iconTitle = stageCfg
+                  ? afterCfg ? `${stageCfg.label} - up next: ${afterCfg.label}` : stageCfg.label
+                  : undefined;
                 const fmt = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                const daysSince = Math.floor((Date.now() - new Date(p.ADMISSION_DATE).getTime()) / 86_400_000);
+                const notYetAdmitted = daysSince < 0;
+                const daysUntil = Math.abs(daysSince);
+                const overdueFlash = !notYetAdmitted && nextOrder === 1 && daysSince >= 11;
+                const isOverdue = !notYetAdmitted && ((nextOrder === 1 && daysSince >= 1) || (nextOrder === 2 && daysSince >= 11));
+                const stageColor = isOverdue ? '#ef4444' : ACCENT;
 
                 return (
                   <button
@@ -311,16 +323,48 @@ export default function DashboardPage() {
                         {p.PATIENT_NAME}
                       </p>
                       {StageIcon && (
-                        <StageIcon size={20} style={{ color: ACCENT, flexShrink: 0, marginTop: 2 }} />
+                        <div className="flex items-center gap-0.5 shrink-0" style={{ marginTop: 2 }} title={iconTitle}>
+                          <StageIcon size={18} className={overdueFlash ? 'animate-pulse' : ''} style={{ color: stageColor }} />
+                          {AfterIcon && (
+                            <>
+                              <ChevronRight size={13} className="animate-pulse" style={{ color: stageColor }} />
+                              <AfterIcon size={16} style={{ color: SECONDARY }} />
+                            </>
+                          )}
+                        </div>
                       )}
                     </div>
                     <p className="text-xs" style={{ color: SECONDARY }}>Admitted: {fmt(p.ADMISSION_DATE)}</p>
                     {p.PLANNED_DISCHARGE_DATE && (
                       <p className="text-xs" style={{ color: SECONDARY }}>Planned discharge: {fmt(p.PLANNED_DISCHARGE_DATE)}</p>
                     )}
-                    {stageCfg && (
-                      <p className="text-xs font-medium" style={{ color: '#38bdf8' }}>{stageCfg.label}</p>
-                    )}
+                    <div className="flex items-end justify-between gap-2">
+                      {prevCfg ? (
+                        <p className="flex items-center gap-1 text-xs font-medium" style={{ color: '#38bdf8' }}>
+                          <CheckCircle size={11} style={{ color: '#38bdf8' }} />
+                          {prevCfg.label} complete
+                        </p>
+                      ) : stageCfg && StageIcon ? (
+                        <p className="flex items-center gap-1 text-xs font-medium" style={{ color: '#38bdf8' }}>
+                          <StageIcon size={11} style={{ color: '#38bdf8' }} />
+                          {stageCfg.label}
+                        </p>
+                      ) : <span />}
+                      <div
+                        title={notYetAdmitted ? `Due in ${daysUntil} day${daysUntil === 1 ? '' : 's'}` : `${daysSince} day${daysSince === 1 ? '' : 's'} since admission`}
+                        className="flex shrink-0 items-center justify-center font-bold text-xs"
+                        style={{
+                          backgroundColor: notYetAdmitted ? 'rgba(138,138,154,0.15)' : isOverdue ? 'rgba(239,68,68,0.15)' : 'rgba(56,189,248,0.15)',
+                          color: notYetAdmitted ? SECONDARY : isOverdue ? '#ef4444' : '#38bdf8',
+                          border: `1px solid ${notYetAdmitted ? 'rgba(138,138,154,0.3)' : isOverdue ? 'rgba(239,68,68,0.3)' : 'rgba(56,189,248,0.3)'}`,
+                          borderRadius: 6,
+                          padding: '2px 5px',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {notYetAdmitted ? `due in ${daysUntil}` : daysSince}
+                      </div>
+                    </div>
                   </button>
                 );
               })}
@@ -338,6 +382,15 @@ export default function DashboardPage() {
           title="Actions"
           empty={actions.length === 0}
           emptyText="No open actions"
+          footerAction={
+            <button
+              onClick={() => router.push('/actions/complete')}
+              className="w-full rounded-lg py-2 text-xs font-medium transition-opacity hover:opacity-70"
+              style={{ backgroundColor: '#1e1e2a', color: '#fff' }}
+            >
+              View all actions
+            </button>
+          }
           headerAction={actions.length > 0 ? (
             <a
               href={`mailto:${userEmail}?subject=${encodeURIComponent(`[Feedback App] Outstanding actions - ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}`)}&body=${encodeURIComponent(`This summary was generated by the Active Neuro Patient Experience Feedback App.\n\n` + actions.map((a) => `${a.PATIENT_NAME}: ${a.ACTION_TEXT}${a.ASSIGNED_TO ? ` (${a.ASSIGNED_TO})` : ''}`).join('\n'))}`}
@@ -457,24 +510,37 @@ export default function DashboardPage() {
           empty={due.length === 0}
           emptyText="All conversations up to date"
         >
-          {due.map((d) => {
-            const cfg = STAGE_CONFIG[d.NEXT_STAGE_ORDER];
-            const Icon = cfg?.icon;
-            return (
-              <button
-                key={`${d.PATIENT_ID}-${d.NEXT_STAGE_ID}`}
-                onClick={() => router.push(`/session/stage-select?patientId=${d.PATIENT_ID}&patientName=${encodeURIComponent(d.PATIENT_NAME)}`)}
-                className="flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors hover:brightness-110"
-                style={{ backgroundColor: CARD_BG, border: BORDER }}
-              >
-                {Icon && <Icon size={14} style={{ color: ACCENT, flexShrink: 0 }} />}
-                <div>
-                  <p className="text-sm font-medium" style={{ color: '#fff' }}>{d.PATIENT_NAME}</p>
-                  <p className="text-xs font-medium" style={{ color: '#38bdf8' }}>{d.NEXT_STAGE_NAME}</p>
-                </div>
-              </button>
-            );
-          })}
+          {(() => {
+            const admissionByPatient = new Map(patients.map((p) => [p.PATIENT_ID, p.ADMISSION_DATE]));
+            return due.map((d) => {
+              const cfg = STAGE_CONFIG[d.NEXT_STAGE_ORDER];
+              const Icon = cfg?.icon;
+              const admDate = admissionByPatient.get(d.PATIENT_ID);
+              const dDays = admDate ? Math.floor((Date.now() - new Date(admDate).getTime()) / 86_400_000) : 0;
+              const dOverdue = (d.NEXT_STAGE_ORDER === 1 && dDays >= 1) || (d.NEXT_STAGE_ORDER === 2 && dDays >= 11);
+              const dColor = dOverdue ? '#ef4444' : '#38bdf8';
+              return (
+                <button
+                  key={`${d.PATIENT_ID}-${d.NEXT_STAGE_ID}`}
+                  onClick={() => router.push(`/session/stage-select?patientId=${d.PATIENT_ID}&patientName=${encodeURIComponent(d.PATIENT_NAME)}`)}
+                  className="flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors hover:brightness-110"
+                  style={{ backgroundColor: CARD_BG, border: dOverdue ? '1px solid rgba(239,68,68,0.3)' : BORDER }}
+                >
+                  {Icon && <Icon size={14} style={{ color: dColor, flexShrink: 0 }} />}
+                  <div className="flex-1">
+                    <p className="text-sm font-medium" style={{ color: '#fff' }}>{d.PATIENT_NAME}</p>
+                    <p className="flex items-center gap-1 text-xs font-medium" style={{ color: dColor }}>
+                      {dOverdue && <Clock size={11} style={{ flexShrink: 0 }} />}
+                      {d.NEXT_STAGE_NAME}
+                      {STAGE_CONFIG[d.NEXT_STAGE_ORDER + 1] && (
+                        <span className="font-normal" style={{ color: SECONDARY }}> - up next: {STAGE_CONFIG[d.NEXT_STAGE_ORDER + 1].label}</span>
+                      )}
+                    </p>
+                  </div>
+                </button>
+              );
+            });
+          })()}
         </SidebarSection>
 
         {/* Flagged scores */}
@@ -577,6 +643,7 @@ function SidebarSection({
   empty,
   emptyText,
   headerAction,
+  footerAction,
   children,
 }: {
   icon: React.ReactNode;
@@ -584,6 +651,7 @@ function SidebarSection({
   empty: boolean;
   emptyText: string;
   headerAction?: React.ReactNode;
+  footerAction?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   return (
@@ -600,6 +668,11 @@ function SidebarSection({
           children
         )}
       </div>
+      {footerAction && (
+        <div className="px-3 pb-3">
+          {footerAction}
+        </div>
+      )}
     </div>
   );
 }

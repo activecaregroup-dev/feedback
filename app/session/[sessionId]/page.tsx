@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { ArrowLeft, CheckSquare, Square } from 'lucide-react';
+import { ArrowLeft, CheckSquare, Square, CheckCircle } from 'lucide-react';
 import { Suspense } from 'react';
 
 const ACCENT = '#ff6b2b';
@@ -20,10 +20,12 @@ interface SessionData {
     PATIENT_ID: number;
     PATIENT_NAME: string;
     STAGE_NAME: string;
+    STAGE_ID: number;
     STARTED_AT: string;
     WHO_PRESENT: string | null;
   };
   scores: { QUESTION_TEXT: string; SCORE: number; NOTE: string | null; QUESTION_ORDER: number }[];
+  allPrompts: { PROMPT_ID: number; PROMPT_TEXT: string; THEME: string | null; PROMPT_ORDER: number }[];
   promptNotes: { THEME: string | null; PROMPT_TEXT: string; NOTE_TEXT: string }[];
   comments: { COMMENT_TEXT: string }[];
   actions: { ACTION_TEXT: string; ASSIGNED_TO: string | null; STATUS: string }[];
@@ -79,12 +81,23 @@ function SessionViewContent() {
     );
   }
 
-  const { meta, scores, promptNotes, comments, actions } = data;
+  const { meta, scores, allPrompts, promptNotes, comments, actions } = data;
+
+  // Index notes by prompt text for quick lookup
+  const noteByPrompt = new Map(promptNotes.map((pn) => [pn.PROMPT_TEXT, pn.NOTE_TEXT]));
+
+  // Group prompts by theme
+  const themes: { theme: string | null; prompts: typeof allPrompts }[] = [];
+  for (const p of allPrompts) {
+    const existing = themes.find((t) => t.theme === p.THEME);
+    if (existing) existing.prompts.push(p);
+    else themes.push({ theme: p.THEME, prompts: [p] });
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#0a0a0f' }}>
 
-      {/* Header */}
+      {/* Sticky header */}
       <div
         className="sticky top-0 z-10 flex items-center gap-3 px-5 py-4"
         style={{ backgroundColor: CARD_BG, borderBottom: BORDER }}
@@ -100,30 +113,77 @@ function SessionViewContent() {
           <p className="text-xs" style={{ color: SECONDARY }}>{meta.STAGE_NAME}</p>
           <h1 className="text-lg font-semibold leading-tight" style={{ color: '#fff' }}>{meta.PATIENT_NAME}</h1>
         </div>
-        <div className="ml-auto text-right">
-          <p className="text-xs" style={{ color: SECONDARY }}>{fmt(meta.STARTED_AT)}</p>
-          {meta.WHO_PRESENT && (
-            <p className="text-xs mt-0.5" style={{ color: SECONDARY }}>{meta.WHO_PRESENT}</p>
-          )}
-        </div>
       </div>
 
       <div className="mx-auto max-w-2xl space-y-8 px-4 py-8 pb-16">
 
-        {/* Conversation notes */}
-        {promptNotes.length > 0 && (
+        {/* Summary card - always visible */}
+        <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: CARD_BG, border: BORDER }}>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: SECONDARY }}>Completed</p>
+              <p className="text-sm font-medium" style={{ color: '#fff' }}>{fmt(meta.STARTED_AT)}</p>
+            </div>
+            {meta.WHO_PRESENT && (
+              <div className="text-right">
+                <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: SECONDARY }}>Attendees</p>
+                <p className="text-sm font-medium" style={{ color: '#fff' }}>{meta.WHO_PRESENT}</p>
+              </div>
+            )}
+          </div>
+          {comments.length > 0 && (
+            <div style={{ borderTop: BORDER, paddingTop: '0.75rem' }}>
+              <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: SECONDARY }}>Notes</p>
+              {comments.map((c, i) => (
+                <p key={i} className="text-sm leading-relaxed" style={{ color: '#fff' }}>{c.COMMENT_TEXT}</p>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Conversation guidance checklist - always visible if prompts exist */}
+        {allPrompts.length > 0 && (
           <section className="space-y-3">
             <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: SECONDARY }}>
-              Conversation notes
+              Conversation guidance
             </h2>
-            <div className="space-y-2">
-              {promptNotes.map((pn, i) => (
-                <div key={i} className="rounded-xl px-4 py-3 space-y-0.5" style={{ backgroundColor: CARD_BG, border: BORDER }}>
-                  {pn.THEME && (
-                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: ACCENT }}>{pn.THEME}</p>
+            <div className="rounded-xl overflow-hidden" style={{ border: BORDER }}>
+              {themes.map((group, gi) => (
+                <div key={gi}>
+                  {group.theme && (
+                    <p
+                      className="px-4 py-2 text-xs font-semibold uppercase tracking-wide"
+                      style={{ backgroundColor: '#0f0f14', color: ACCENT, borderBottom: BORDER }}
+                    >
+                      {group.theme}
+                    </p>
                   )}
-                  <p className="text-xs" style={{ color: SECONDARY }}>{pn.PROMPT_TEXT}</p>
-                  <p className="text-sm pt-1" style={{ color: '#fff' }}>{pn.NOTE_TEXT}</p>
+                  {group.prompts.map((p, pi) => {
+                    const note = noteByPrompt.get(p.PROMPT_TEXT);
+                    const isLast = gi === themes.length - 1 && pi === group.prompts.length - 1;
+                    return (
+                      <div
+                        key={p.PROMPT_ID}
+                        className="px-4 py-3 space-y-1"
+                        style={{
+                          backgroundColor: CARD_BG,
+                          borderBottom: isLast ? 'none' : BORDER,
+                        }}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <CheckCircle size={15} style={{ color: ACCENT, flexShrink: 0, marginTop: 1 }} />
+                          <p className="text-sm leading-snug" style={{ color: note ? '#fff' : SECONDARY }}>
+                            {p.PROMPT_TEXT}
+                          </p>
+                        </div>
+                        {note && (
+                          <p className="text-sm leading-snug pl-6" style={{ color: '#fff' }}>
+                            {note}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
@@ -157,19 +217,6 @@ function SessionViewContent() {
           </section>
         )}
 
-        {/* Comments */}
-        {comments.length > 0 && (
-          <section className="space-y-3">
-            <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: SECONDARY }}>
-              Comments
-            </h2>
-            <div className="rounded-xl p-4 space-y-2" style={{ backgroundColor: CARD_BG, border: BORDER }}>
-              {comments.map((c, i) => (
-                <p key={i} className="text-sm leading-relaxed" style={{ color: '#fff' }}>{c.COMMENT_TEXT}</p>
-              ))}
-            </div>
-          </section>
-        )}
 
         {/* Actions */}
         {actions.length > 0 && (

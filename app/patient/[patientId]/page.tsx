@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { STAGE_CONFIG } from '@/lib/stage-config';
-import { ArrowLeft, CheckCircle, Lock, ChevronDown, ChevronUp, CheckSquare, Square, MessageSquare } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Lock, FileText } from 'lucide-react';
 
 const ACCENT = '#ff6b2b';
 const SECONDARY = '#8a8a9a';
@@ -65,22 +65,6 @@ function fmt(d: string) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function ScoreBar({ score }: { score: number }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex gap-0.5">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <div
-            key={n}
-            className="h-1.5 w-5 rounded-full"
-            style={{ backgroundColor: n <= score ? ACCENT : '#2a2a3a' }}
-          />
-        ))}
-      </div>
-      <span className="text-xs" style={{ color: SECONDARY }}>{score}/5</span>
-    </div>
-  );
-}
 
 export default function PatientJourneyPage() {
   const router = useRouter();
@@ -88,8 +72,6 @@ export default function PatientJourneyPage() {
   const [data, setData] = useState<JourneyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<Set<number>>(new Set());
-
   useEffect(() => {
     fetch(`/api/patients/${patientId}/journey`)
       .then((r) => {
@@ -99,14 +81,6 @@ export default function PatientJourneyPage() {
       .then((d) => { setData(d); setLoading(false); })
       .catch((e) => { setError(e.message); setLoading(false); });
   }, [patientId]);
-
-  function toggleExpand(stageId: number) {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      next.has(stageId) ? next.delete(stageId) : next.add(stageId);
-      return next;
-    });
-  }
 
   if (loading) {
     return (
@@ -169,8 +143,6 @@ export default function PatientJourneyPage() {
             {stages.map((stage) => {
               const cfg = STAGE_CONFIG[stage.STAGE_ORDER];
               const StageIcon = cfg?.icon;
-              const isExpanded = expanded.has(stage.STAGE_ID);
-              const hasDetail = stage.scores.length > 0 || stage.comments.length > 0 || stage.actions.length > 0 || stage.promptNotes.length > 0;
 
               return (
                 <div key={stage.STAGE_ID} className="relative flex gap-4">
@@ -206,146 +178,70 @@ export default function PatientJourneyPage() {
                   {/* Stage content */}
                   <div className="flex-1 pb-2">
                     <div
-                      className="rounded-xl"
+                      className="flex overflow-hidden rounded-xl"
                       style={{
                         backgroundColor: stage.status === 'due' ? 'rgba(255,107,43,0.06)' : CARD_BG,
                         border: stage.status === 'due' ? '1px solid rgba(255,107,43,0.3)' : BORDER,
                         opacity: stage.status === 'locked' ? 0.5 : 1,
                       }}
                     >
-                      {/* Stage header row */}
-                      <div
-                        className="flex w-full items-center justify-between gap-3 p-4 text-left"
-                        onClick={() => stage.status === 'complete' && hasDetail && toggleExpand(stage.STAGE_ID)}
-                        style={{ cursor: stage.status === 'complete' && hasDetail ? 'pointer' : 'default' }}
-                      >
-                        <div className="flex-1">
-                          <p className="font-semibold" style={{ color: stage.status === 'locked' ? SECONDARY : '#fff' }}>
-                            {stage.STAGE_NAME}
-                          </p>
-                          {stage.status === 'complete' && (
-                            <div className="mt-1 flex flex-wrap items-center gap-3">
-                              <p className="text-xs" style={{ color: SECONDARY }}>
-                                {fmt(stage.COMPLETED_AT!)}
+                      {/* Stage info */}
+                      <div className="flex-1 p-4">
+                        <p className="font-semibold" style={{ color: stage.status === 'locked' ? SECONDARY : '#fff' }}>
+                          {stage.STAGE_NAME}
+                        </p>
+                        {stage.status === 'complete' && (
+                          <div className="mt-1 flex flex-wrap items-center gap-3">
+                            <p className="text-xs" style={{ color: SECONDARY }}>
+                              {fmt(stage.COMPLETED_AT!)}
+                            </p>
+                            {stage.AVG_SCORE !== null && (
+                              <p className="text-xs font-medium" style={{ color: '#38bdf8' }}>
+                                Avg {Number(stage.AVG_SCORE).toFixed(1)} / 5
                               </p>
-                              {stage.AVG_SCORE !== null && (
-                                <p className="text-xs font-medium" style={{ color: '#38bdf8' }}>
-                                  Avg {Number(stage.AVG_SCORE).toFixed(1)} / 5
-                                </p>
+                            )}
+                          </div>
+                        )}
+                        {stage.status === 'due' && (
+                          <>
+                            <p className="mt-0.5 text-xs font-medium" style={{ color: ACCENT }}>Due next</p>
+                            <button
+                              onClick={() => router.push(
+                                `/session/guidance?patientId=${patientId}&stageId=${stage.STAGE_ID}&patientName=${encodeURIComponent(patient.PATIENT_NAME)}&stageName=${encodeURIComponent(stage.STAGE_NAME)}`
                               )}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  router.push(`/session/${stage.SESSION_ID}?patientId=${patientId}`);
-                                }}
-                                className="text-xs font-medium transition-opacity hover:opacity-70"
-                                style={{ color: ACCENT }}
-                              >
-                                View
-                              </button>
-                            </div>
-                          )}
-                          {stage.status === 'due' && (
-                            <>
-                              <p className="mt-0.5 text-xs font-medium" style={{ color: ACCENT }}>Due next</p>
-                              <button
-                                onClick={() => router.push(
-                                  `/session/guidance?patientId=${patientId}&stageId=${stage.STAGE_ID}&patientName=${encodeURIComponent(patient.PATIENT_NAME)}&stageName=${encodeURIComponent(stage.STAGE_NAME)}`
-                                )}
-                                className="mt-3 w-full rounded-xl py-3 text-sm font-semibold transition-opacity hover:opacity-90"
-                                style={{ backgroundColor: ACCENT, color: '#fff' }}
-                              >
-                                Start conversation
-                              </button>
-                            </>
-                          )}
-                          {stage.status === 'locked' && (
-                            <p className="mt-0.5 text-xs" style={{ color: SECONDARY }}>Not yet started</p>
-                          )}
-                        </div>
-                        {stage.status === 'complete' && hasDetail && (
-                          isExpanded
-                            ? <ChevronUp size={16} style={{ color: SECONDARY, flexShrink: 0 }} />
-                            : <ChevronDown size={16} style={{ color: SECONDARY, flexShrink: 0 }} />
+                              className="mt-3 w-full rounded-xl py-3 text-sm font-semibold transition-opacity hover:opacity-90"
+                              style={{ backgroundColor: ACCENT, color: '#fff' }}
+                            >
+                              Start conversation
+                            </button>
+                          </>
+                        )}
+                        {stage.status === 'locked' && (
+                          <p className="mt-0.5 text-xs" style={{ color: SECONDARY }}>Not yet started</p>
                         )}
                       </div>
 
-                      {/* Expanded detail */}
-                      {stage.status === 'complete' && isExpanded && (
-                        <div
-                          className="space-y-4 px-4 pb-4"
-                          style={{ borderTop: BORDER }}
+                      {/* View strip — complete stages only */}
+                      {stage.status === 'complete' && (
+                        <button
+                          onClick={() => router.push(`/session/${stage.SESSION_ID}?patientId=${patientId}`)}
+                          className="flex shrink-0 flex-col items-center justify-center gap-1.5 px-4 transition-opacity hover:opacity-80"
+                          style={{ backgroundColor: 'rgba(255,107,43,0.45)', color: '#fff', width: 88, borderRadius: '0 10px 10px 0' }}
                         >
-                          {/* Question scores */}
-                          {stage.scores.length > 0 && (
-                            <div className="pt-3 space-y-2">
-                              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: SECONDARY }}>Scores</p>
-                              {stage.scores.map((s, i) => (
-                                <div key={i} className="space-y-1">
-                                  <div className="flex items-start justify-between gap-3">
-                                    <p className="text-sm flex-1 leading-snug" style={{ color: '#fff' }}>{s.QUESTION_TEXT}</p>
-                                    <ScoreBar score={s.SCORE} />
-                                  </div>
-                                  {s.NOTE && (
-                                    <p className="text-xs leading-snug pl-1" style={{ color: SECONDARY }}>
-                                      {s.NOTE}
-                                    </p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Conversation notes */}
+                          <span className="text-xs font-bold">View</span>
                           {stage.promptNotes.length > 0 && (
-                            <div className="space-y-2">
-                              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: SECONDARY }}>Conversation notes</p>
-                              {stage.promptNotes.map((pn, i) => (
-                                <div key={i} className="rounded-lg px-3 py-2 space-y-0.5" style={{ backgroundColor: '#1e1e2a' }}>
-                                  {pn.THEME && (
-                                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: ACCENT }}>{pn.THEME}</p>
-                                  )}
-                                  <p className="text-xs leading-snug" style={{ color: SECONDARY }}>{pn.PROMPT_TEXT}</p>
-                                  <p className="text-sm leading-snug" style={{ color: '#fff' }}>{pn.NOTE_TEXT}</p>
-                                </div>
-                              ))}
-                            </div>
+                            <span className="flex items-center gap-1 text-xs font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                              <FileText size={11} />
+                              Notes
+                            </span>
                           )}
-
-                          {/* Comments */}
-                          {stage.comments.length > 0 && (
-                            <div className="space-y-1">
-                              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: SECONDARY }}>Comments</p>
-                              {stage.comments.map((c, i) => (
-                                <div key={i} className="flex gap-2">
-                                  <MessageSquare size={13} style={{ color: SECONDARY, flexShrink: 0, marginTop: 3 }} />
-                                  <p className="text-sm leading-snug" style={{ color: '#fff' }}>{c}</p>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Actions */}
                           {stage.actions.length > 0 && (
-                            <div className="space-y-1">
-                              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: SECONDARY }}>Actions</p>
-                              {stage.actions.map((a, i) => (
-                                <div key={i} className="flex items-start gap-2">
-                                  {a.STATUS === 'COMPLETE'
-                                    ? <CheckSquare size={13} style={{ color: ACCENT, flexShrink: 0, marginTop: 3 }} />
-                                    : <Square size={13} style={{ color: SECONDARY, flexShrink: 0, marginTop: 3 }} />
-                                  }
-                                  <p
-                                    className="text-sm leading-snug"
-                                    style={{ color: a.STATUS === 'COMPLETE' ? SECONDARY : '#fff', textDecoration: a.STATUS === 'COMPLETE' ? 'line-through' : 'none' }}
-                                  >
-                                    {a.ACTION_TEXT}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
+                            <span className="flex items-center gap-1 text-xs font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                              <CheckCircle size={11} />
+                              Actions
+                            </span>
                           )}
-                        </div>
+                        </button>
                       )}
                     </div>
                   </div>

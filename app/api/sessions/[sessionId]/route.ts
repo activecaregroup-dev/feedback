@@ -17,10 +17,11 @@ export async function GET(
       PATIENT_ID: number;
       PATIENT_NAME: string;
       STAGE_NAME: string;
+      STAGE_ID: number;
       STARTED_AT: string;
       WHO_PRESENT: string | null;
     }>(
-      `SELECT s.SESSION_ID, s.PATIENT_ID, s.PATIENT_NAME, st.STAGE_NAME, s.STARTED_AT, s.WHO_PRESENT
+      `SELECT s.SESSION_ID, s.PATIENT_ID, s.PATIENT_NAME, st.STAGE_NAME, st.STAGE_ID, s.STARTED_AT, s.WHO_PRESENT
        FROM ${FB}.SESSIONS s
        JOIN ${FB}.STAGES st ON st.STAGE_ID = s.STAGE_ID
        WHERE s.SESSION_ID = ?`,
@@ -75,7 +76,20 @@ export async function GET(
       [sessionId]
     );
 
-    return NextResponse.json({ meta, scores, promptNotes, comments, actions });
+    const allPrompts = await query<{
+      PROMPT_ID: number;
+      PROMPT_TEXT: string;
+      THEME: string | null;
+      PROMPT_ORDER: number;
+    }>(
+      `SELECT PROMPT_ID, PROMPT_TEXT, THEME, PROMPT_ORDER
+       FROM ${FB}.CONVERSATION_PROMPTS
+       WHERE STAGE_ID = ?
+       ORDER BY PROMPT_ORDER`,
+      [meta.STAGE_ID]
+    );
+
+    return NextResponse.json({ meta, scores, promptNotes, allPrompts, comments, actions });
   } catch (err) {
     console.error('[/api/sessions/[sessionId]]', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
