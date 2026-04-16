@@ -211,7 +211,11 @@ function SessionViewContent() {
 
 export default function SessionViewPage() {
   return (
-    <Suspense>
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#0a0a0f' }}>
+        <p style={{ color: '#8a8a9a' }}>Loading...</p>
+      </div>
+    }>
       <SessionViewContent />
     </Suspense>
   );
