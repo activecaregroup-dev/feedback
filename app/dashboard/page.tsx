@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { STAGE_CONFIG, STAGE_ORDERS } from '@/lib/stage-config';
-import { CheckCircle, AlertTriangle, MessageSquare, Users, Search, Mail, Pencil, X, Send, ChevronRight, Clock } from 'lucide-react';
+import { CheckCircle, AlertTriangle, MessageSquare, Users, Search, Mail, Pencil, X, Send, ChevronRight, Clock, LogOut } from 'lucide-react';
+import { doSignOut } from '@/lib/auth-actions';
 
 interface Patient {
   PATIENT_ID: number;
@@ -245,6 +246,17 @@ export default function DashboardPage() {
               style={{ backgroundColor: '#1e1e2a', border: BORDER, color: '#fff', caretColor: '#ff6b2b' }}
             />
           </div>
+          <form action={doSignOut} className="shrink-0">
+            <button
+              type="submit"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-opacity hover:opacity-80"
+              style={{ backgroundColor: '#1e1e2a', color: SECONDARY, border: BORDER }}
+              title="Sign out"
+            >
+              <LogOut size={14} />
+              Sign out
+            </button>
+          </form>
         </div>
 
         {/* Stage filter bar */}

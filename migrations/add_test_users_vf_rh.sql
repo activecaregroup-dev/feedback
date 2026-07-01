@@ -29,13 +29,13 @@ VALUES
 -- Generate one with:  node -e "console.log(require('bcryptjs').hashSync('your-password', 10))"
 -- (run from the project root so bcryptjs resolves).
 --
--- UPDATE DATAOPS_DEV.COLLECTION_FEEDBACK.USERS
---   SET PASSWORD_HASH = '$2b$10$REPLACE_WITH_VF_HASH'
---   WHERE USERNAME = 'vf_test';
+UPDATE DATAOPS_DEV.COLLECTION_FEEDBACK.USERS
+   SET PASSWORD_HASH = '$2b$10$qKMOtudxj7SbaqmilEtHgON2pW.e7ItDnTWyKu9K8ObkE0C0XpygW'
+   WHERE USERNAME = 'vf_test';
 --
--- UPDATE DATAOPS_DEV.COLLECTION_FEEDBACK.USERS
---   SET PASSWORD_HASH = '$2b$10$REPLACE_WITH_RH_HASH'
---   WHERE USERNAME = 'rh_test';
+UPDATE DATAOPS_DEV.COLLECTION_FEEDBACK.USERS
+   SET PASSWORD_HASH = '$2b$10$75rTdqJrOR2KywkIj5rMWOpAnWfZohdWieIlBhBhNKCT7HPq88o8y'
+   WHERE USERNAME = 'rh_test';
 
 -- Verification
 SELECT USER_ID, AZURE_AD_OID, USERNAME, EMAIL, DISPLAY_NAME, SITE_ID,
