@@ -3,7 +3,12 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { STAGE_CONFIG, STAGE_ORDERS } from '@/lib/stage-config';
-import { CheckCircle, Lock, ChevronRight, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Lock, ChevronRight, ArrowLeft, Angry, Frown, Smile, Laugh } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
+const SCORE_FACES: Record<number, LucideIcon> = {
+  1: Angry, 2: Frown, 3: Smile, 4: Laugh,
+};
 
 interface StageRow {
   STAGE_ID: number;
@@ -154,11 +159,16 @@ function StageSelectContent() {
                         <p className="text-xs" style={{ color: SECONDARY }}>
                           {date}
                         </p>
-                        {stage.avgScore !== null && (
-                          <p className="text-xs font-medium" style={{ color: ACCENT }}>
-                            Avg score {Number(stage.avgScore).toFixed(1)} / 5
-                          </p>
-                        )}
+                        {stage.avgScore !== null && (() => {
+                          const faceIdx = Math.max(1, Math.min(4, Math.round(Number(stage.avgScore))));
+                          const FaceIcon = SCORE_FACES[faceIdx];
+                          return (
+                            <span className="flex items-center gap-1 text-xs font-medium" style={{ color: ACCENT }}>
+                              <FaceIcon size={12} />
+                              {Number(stage.avgScore).toFixed(1)} / 4
+                            </span>
+                          );
+                        })()}
                       </div>
                     )}
 

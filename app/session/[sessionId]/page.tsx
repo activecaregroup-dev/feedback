@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { ArrowLeft, CheckSquare, Square, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CheckSquare, Square, CheckCircle, Angry, Frown, Smile, Laugh } from 'lucide-react';
 import { Suspense } from 'react';
+import type { LucideIcon } from 'lucide-react';
 
 const ACCENT = '#ff6b2b';
 const SECONDARY = '#8a8a9a';
@@ -11,7 +12,11 @@ const CARD_BG = '#141419';
 const BORDER = '1px solid #1e1e2a';
 
 const SCORE_LABELS: Record<number, string> = {
-  1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'Very good', 5: 'Excellent',
+  1: 'Sad', 2: 'Unhappy', 3: 'Happy', 4: 'Very happy',
+};
+
+const SCORE_FACES: Record<number, LucideIcon> = {
+  1: Angry, 2: Frown, 3: Smile, 4: Laugh,
 };
 
 interface SessionData {
@@ -35,15 +40,12 @@ function fmt(d: string) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function ScoreBar({ score }: { score: number }) {
+function ScoreFace({ score }: { score: number }) {
+  const Icon = SCORE_FACES[score] ?? Angry;
   return (
-    <div className="flex items-center gap-2 shrink-0">
-      <div className="flex gap-0.5">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <div key={n} className="h-1.5 w-5 rounded-full" style={{ backgroundColor: n <= score ? ACCENT : '#2a2a3a' }} />
-        ))}
-      </div>
-      <span className="text-xs" style={{ color: SECONDARY }}>{score}/5</span>
+    <div className="flex items-center gap-1.5 shrink-0">
+      <Icon size={16} style={{ color: ACCENT }} />
+      <span className="text-xs" style={{ color: SECONDARY }}>{score}/4</span>
     </div>
   );
 }
@@ -202,8 +204,8 @@ function SessionViewContent() {
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-sm font-medium flex-1 leading-snug" style={{ color: '#fff' }}>{s.QUESTION_TEXT}</p>
                     <div className="shrink-0 text-right">
-                      <ScoreBar score={s.SCORE} />
-                      <p className="text-xs mt-0.5" style={{ color: SECONDARY }}>{SCORE_LABELS[s.SCORE]}</p>
+                      <ScoreFace score={s.SCORE} />
+                      <p className="text-xs mt-0.5" style={{ color: SECONDARY }}>{SCORE_LABELS[s.SCORE] ?? s.SCORE}</p>
                     </div>
                   </div>
                   {s.NOTE && (

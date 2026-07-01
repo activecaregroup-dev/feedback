@@ -1,4 +1,6 @@
 import NextAuth from 'next-auth';
+import Credentials from 'next-auth/providers/credentials';
+import bcrypt from 'bcryptjs';
 import { authConfig } from '@/auth.config';
 import { query } from '@/lib/snowflake';
 
@@ -31,11 +33,64 @@ const DEV_USER: AppUser = {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  // Node-only providers (Snowflake + bcrypt) live here, not in auth.config.ts,
+  // so they never get bundled into the edge middleware.
+  providers: [
+    ...authConfig.providers,
+    Credentials({
+      credentials: { username: {}, password: {} },
+      async authorize(credentials) {
+        const username = (credentials?.username as string | undefined)?.trim();
+        const password = credentials?.password as string | undefined;
+        if (!password) return null;
+
+        // TODO: remove before go-live — shared dev shortcut (no username)
+        if (!username && password === 'dev2026') {
+          return { id: 'dev', name: 'Dev User', email: 'dev@local', devUser: true };
+        }
+        if (!username) return null;
+
+        // Username + password against the USERS table (bcrypt hash).
+        const rows = await query<{
+          AZURE_AD_OID: string;
+          EMAIL: string;
+          DISPLAY_NAME: string;
+          PASSWORD_HASH: string | null;
+          IS_ACTIVE: boolean;
+        }>(
+          `SELECT AZURE_AD_OID, EMAIL, DISPLAY_NAME, PASSWORD_HASH, IS_ACTIVE
+           FROM USERS
+           WHERE LOWER(USERNAME) = LOWER(?)
+           LIMIT 1`,
+          [username]
+        );
+
+        const row = rows[0];
+        if (!row || !row.IS_ACTIVE || !row.PASSWORD_HASH) return null;
+        if (!(await bcrypt.compare(password, row.PASSWORD_HASH))) return null;
+
+        // Carry the OID so the session callback resolves the user (and site)
+        // through the same path as Azure SSO.
+        return {
+          id: row.AZURE_AD_OID,
+          name: row.DISPLAY_NAME,
+          email: row.EMAIL,
+          oid: row.AZURE_AD_OID,
+        };
+      },
+    }),
+  ],
   callbacks: {
     async jwt({ token, account, profile, user }) {
       if (account?.provider === 'credentials' && user) {
-        // TODO: remove before go-live
-        token.devUser = true;
+        const u = user as { oid?: string; devUser?: boolean };
+        if (u.devUser) {
+          // TODO: remove before go-live
+          token.devUser = true;
+        } else if (u.oid) {
+          // Real USERS-table login — resolve via the OID path below.
+          token.oid = u.oid;
+        }
       } else if (account && profile) {
         token.oid = (profile as Record<string, unknown>).oid as string;
       }

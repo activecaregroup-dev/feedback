@@ -77,6 +77,11 @@ function getConnection(): Promise<Connection> {
 export const FB = process.env.SNOWFLAKE_FEEDBACK_SCHEMA ?? 'DATAOPS_DEV.COLLECTION_FEEDBACK';
 export const CN = process.env.SNOWFLAKE_CARENOTES_SCHEMA ?? 'DATAOPS_PROD.COLLECTION_CARENOTES';
 
+// IMPORTANT: SESSIONS.STATUS may be 'IN_PROGRESS', 'COMPLETED', or 'SKIPPED'.
+// SKIPPED sessions have no QUESTION_RESPONSES and must be excluded from
+// score-average calculations. Filter to STATUS = 'COMPLETED' in reporting
+// queries unless you specifically need skipped data.
+
 export async function query<T = Record<string, unknown>>(
   sql: string,
   binds: Binds = []

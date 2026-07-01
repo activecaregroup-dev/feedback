@@ -2,11 +2,13 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Angry, Frown, Smile, Laugh } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 interface Question {
   QUESTION_ID: number;
   QUESTION_TEXT: string;
+  QUESTION_TYPE: string;
   QUESTION_ORDER: number;
 }
 
@@ -16,13 +18,12 @@ interface Action {
   dueDate: string;
 }
 
-const SCORE_LABELS: Record<number, string> = {
-  1: 'Poor',
-  2: 'Fair',
-  3: 'Good',
-  4: 'Very good',
-  5: 'Excellent',
-};
+const FACE_OPTIONS: { score: number; Icon: LucideIcon }[] = [
+  { score: 1, Icon: Angry },
+  { score: 2, Icon: Frown },
+  { score: 3, Icon: Smile },
+  { score: 4, Icon: Laugh },
+];
 
 const ACCENT = '#ff6b2b';
 const SECONDARY = '#8a8a9a';
@@ -34,6 +35,10 @@ const INPUT_STYLE = {
   color: '#fff',
   borderRadius: '0.75rem',
 };
+
+// TODO: Steve to confirm wording
+const CONSENT_TEXT =
+  'I confirm that I have given my consent for Active Care Group to contact me about the options I have selected above. I understand I can withdraw my consent at any time by emailing privacy@activecaregroup.co.uk.';
 
 function FeedbackContent() {
   const router = useRouter();
@@ -52,6 +57,7 @@ function FeedbackContent() {
   const [attendees, setAttendees] = useState('');
   const [comments, setComments] = useState('');
   const [actions, setActions] = useState<Action[]>([]);
+  const [consentChecked, setConsentChecked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [myName, setMyName] = useState('');
@@ -91,10 +97,21 @@ function FeedbackContent() {
     setActions((prev) => prev.filter((_, i) => i !== index));
   }
 
+  const booleanQuestions = questions.filter((q) => q.QUESTION_TYPE === 'BOOLEAN');
+  const anyBooleanYes = booleanQuestions.some((q) => scores[q.QUESTION_ID] === 1);
+  const showConsentBlock = booleanQuestions.length > 0 && anyBooleanYes;
+  const consentBlocked = showConsentBlock && !consentChecked;
+
   async function submit() {
-    const unanswered = questions.filter((q) => !scores[q.QUESTION_ID]);
+    // Use === undefined so score 0 (BOOLEAN "No") is counted as answered
+    const unanswered = questions.filter((q) => scores[q.QUESTION_ID] === undefined);
     if (unanswered.length > 0) {
-      alert('Please score all questions before submitting.');
+      alert('Please answer all questions before submitting.');
+      return;
+    }
+
+    if (consentBlocked) {
+      alert('Tick the consent box above to continue.');
       return;
     }
 
@@ -114,8 +131,18 @@ function FeedbackContent() {
     const questionResponses = questions.map((q) => ({
       questionId: q.QUESTION_ID,
       score: scores[q.QUESTION_ID],
-      note: questionNotes[q.QUESTION_ID]?.trim() || null,
+      note: q.QUESTION_TYPE === 'LIKERT' ? (questionNotes[q.QUESTION_ID]?.trim() || null) : null,
     }));
+
+    // Build consent payload: only sent when at least one BOOLEAN opt-in is Yes
+    const consent = anyBooleanYes
+      ? {
+          caseStudyOptIn: scores[booleanQuestions[0]?.QUESTION_ID] === 1,
+          googleReviewOptIn: scores[booleanQuestions[1]?.QUESTION_ID] === 1,
+          // TODO: Steve to confirm wording - this verbatim text is stored in CONSENTS for GDPR audit
+          consentText: CONSENT_TEXT,
+        }
+      : undefined;
 
     const res = await fetch('/api/sessions', {
       method: 'POST',
@@ -130,6 +157,7 @@ function FeedbackContent() {
         promptNotes: promptNotesList,
         comments,
         actions: actions.filter((a) => a.text.trim()),
+        consent,
       }),
     });
 
@@ -166,63 +194,131 @@ function FeedbackContent() {
           <h1 className="text-2xl font-semibold" style={{ color: '#fff' }}>{patientName}</h1>
         </div>
 
-        {/* Scored questions */}
+        {/* Questions */}
         <section className="space-y-5">
           <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: SECONDARY }}>
             Questions
           </h2>
           {questions.map((q) => {
+            if (q.QUESTION_TYPE === 'BOOLEAN') {
+              // Yes / No tap buttons for marketing opt-in questions
+              return (
+                <div
+                  key={q.QUESTION_ID}
+                  className="space-y-3 rounded-xl p-5"
+                  style={{ backgroundColor: CARD_BG, border: BORDER }}
+                >
+                  <p className="text-base font-medium leading-snug" style={{ color: '#fff' }}>
+                    {q.QUESTION_TEXT}
+                  </p>
+                  <div className="flex gap-4">
+                    {([{ label: 'Yes', value: 1 }, { label: 'No', value: 0 }] as const).map(({ label, value }) => {
+                      const selected = scores[q.QUESTION_ID] === value;
+                      return (
+                        <button
+                          key={value}
+                          onClick={() => setScore(q.QUESTION_ID, value)}
+                          className="flex flex-1 items-center justify-center rounded-xl text-base font-semibold transition-all"
+                          style={{
+                            backgroundColor: selected ? ACCENT : 'transparent',
+                            border: selected ? `1px solid ${ACCENT}` : `1px solid #1e1e2a`,
+                            color: selected ? '#fff' : SECONDARY,
+                            minHeight: 64,
+                            boxShadow: selected ? `0 0 12px rgba(255,107,43,0.45)` : 'none',
+                            transform: selected ? 'scale(1.03)' : 'scale(1)',
+                          }}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }
+
+            // LIKERT face-icon questions - unchanged
             const isOpen = notesOpen[q.QUESTION_ID] ?? false;
             const hasNote = !!questionNotes[q.QUESTION_ID]?.trim();
             return (
-            <div
-              key={q.QUESTION_ID}
-              className="space-y-3 rounded-xl p-5"
-              style={{ backgroundColor: CARD_BG, border: BORDER }}
-            >
-              <p className="text-base font-medium leading-snug" style={{ color: '#fff' }}>{q.QUESTION_TEXT}</p>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map((score) => {
-                  const selected = scores[q.QUESTION_ID] === score;
-                  return (
-                    <button
-                      key={score}
-                      onClick={() => setScore(q.QUESTION_ID, score)}
-                      className="flex flex-1 flex-col items-center gap-1 rounded-lg py-3 transition-colors"
-                      style={{
-                        backgroundColor: selected ? ACCENT : 'rgba(255,255,255,0.04)',
-                        border: selected ? `1px solid ${ACCENT}` : BORDER,
-                        color: selected ? '#fff' : SECONDARY,
-                      }}
-                    >
-                      <span className="text-xl font-semibold">{score}</span>
-                      <span className="text-xs leading-tight">{SCORE_LABELS[score]}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                onClick={() => toggleNote(q.QUESTION_ID)}
-                className="flex items-center gap-1.5 text-xs transition-opacity hover:opacity-80"
-                style={{ color: hasNote ? ACCENT : SECONDARY }}
+              <div
+                key={q.QUESTION_ID}
+                className="space-y-3 rounded-xl p-5"
+                style={{ backgroundColor: CARD_BG, border: BORDER }}
               >
-                {isOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                {hasNote ? 'Note added' : 'Add a note'}
-              </button>
-              {isOpen && (
-                <textarea
-                  value={questionNotes[q.QUESTION_ID] ?? ''}
-                  onChange={(e) => setQuestionNote(q.QUESTION_ID, e.target.value)}
-                  rows={3}
-                  placeholder="Add any context or detail about this response..."
-                  className="w-full px-4 py-3 text-sm outline-none resize-none rounded-lg"
-                  style={{ ...INPUT_STYLE, borderRadius: '0.5rem', caretColor: ACCENT }}
-                />
-              )}
-            </div>
+                <p className="text-base font-medium leading-snug" style={{ color: '#fff' }}>{q.QUESTION_TEXT}</p>
+                <div className="flex gap-3">
+                  {FACE_OPTIONS.map(({ score, Icon }) => {
+                    const selected = scores[q.QUESTION_ID] === score;
+                    return (
+                      <button
+                        key={score}
+                        onClick={() => setScore(q.QUESTION_ID, score)}
+                        className="flex flex-1 items-center justify-center rounded-xl transition-all"
+                        style={{
+                          backgroundColor: selected ? ACCENT : 'transparent',
+                          border: selected ? `1px solid ${ACCENT}` : `1px solid #1e1e2a`,
+                          color: selected ? '#fff' : ACCENT,
+                          minHeight: 88,
+                          minWidth: 64,
+                          boxShadow: selected ? `0 0 12px rgba(255,107,43,0.45)` : 'none',
+                          transform: selected ? 'scale(1.06)' : 'scale(1)',
+                        }}
+                      >
+                        <Icon size={44} />
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => toggleNote(q.QUESTION_ID)}
+                  className="flex items-center gap-1.5 text-xs transition-opacity hover:opacity-80"
+                  style={{ color: hasNote ? ACCENT : SECONDARY }}
+                >
+                  {isOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  {hasNote ? 'Note added' : 'Add a note'}
+                </button>
+                {isOpen && (
+                  <textarea
+                    value={questionNotes[q.QUESTION_ID] ?? ''}
+                    onChange={(e) => setQuestionNote(q.QUESTION_ID, e.target.value)}
+                    rows={3}
+                    placeholder="Add any context or detail about this response..."
+                    className="w-full px-4 py-3 text-sm outline-none resize-none rounded-lg"
+                    style={{ ...INPUT_STYLE, borderRadius: '0.5rem', caretColor: ACCENT }}
+                  />
+                )}
+              </div>
             );
           })}
         </section>
+
+        {/* Marketing consent block - shown only when at least one BOOLEAN is Yes */}
+        {showConsentBlock && (
+          <section
+            className="space-y-4 rounded-xl p-5"
+            style={{ backgroundColor: CARD_BG, border: `1px solid rgba(255,107,43,0.35)` }}
+          >
+            <h2 className="text-sm font-semibold" style={{ color: '#fff' }}>Marketing consent</h2>
+            {/* TODO: Steve to confirm wording */}
+            <p className="text-sm leading-relaxed" style={{ color: SECONDARY }}>
+              Before submitting, please confirm your consent below. The patient should read and tick this box themselves.
+            </p>
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={consentChecked}
+                onChange={(e) => setConsentChecked(e.target.checked)}
+                className="mt-1 h-5 w-5 shrink-0 cursor-pointer accent-orange-500"
+                style={{ accentColor: ACCENT }}
+              />
+              {/* TODO: Steve to confirm wording */}
+              <span className="text-sm leading-relaxed" style={{ color: '#fff' }}>
+                {CONSENT_TEXT}
+              </span>
+            </label>
+          </section>
+        )}
 
         {/* Who was present */}
         <section className="space-y-2">
@@ -338,9 +434,15 @@ function FeedbackContent() {
           </button>
         </section>
 
+        {consentBlocked && (
+          <p className="text-center text-sm" style={{ color: ACCENT }}>
+            Tick the consent box above to continue.
+          </p>
+        )}
+
         <button
           onClick={submit}
-          disabled={submitting}
+          disabled={submitting || consentBlocked}
           className="w-full rounded-xl px-5 py-5 text-lg font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{ backgroundColor: ACCENT }}
         >

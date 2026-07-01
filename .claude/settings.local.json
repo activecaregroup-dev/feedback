@@ -9,7 +9,13 @@
       "Bash(mv /tmp/CLAUDE.md feedback/CLAUDE.md)",
       "Bash(mkdir -p \"c:\\\\Users\\\\claire.tasker\\\\Desktop\\\\feedback\\\\app\\\\api\\\\sessions\\\\[sessionId]\")",
       "Bash(mkdir -p \"c:\\\\Users\\\\claire.tasker\\\\Desktop\\\\feedback\\\\app\\\\session\\\\[sessionId]\")",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(npm run *)",
+      "Bash(git reset *)",
+      "Bash(Add-Content -Path \"c:\\\\Users\\\\claire.tasker\\\\Desktop\\\\feedback\\\\.env.local\" -Value \"`nRESEND_API_KEY=`nRESEND_FROM_ADDRESS=feedback@activecaregroup.co.uk\" -Encoding utf8)",
+      "PowerShell(head -50)",
+      "Bash(node -e \"console.log\\(require\\('bcryptjs'\\) ? 'bcryptjs present' : 'no'\\)\")",
+      "Bash(node -e \"const b=require\\('bcryptjs'\\); const h=b.hashSync\\('test123',10\\); console.log\\('hash:',h\\); console.log\\('verify:',b.compareSync\\('test123',h\\)\\); console.log\\('api:',typeof b.compare, typeof b.hashSync\\)\")"
     ]
   }
 }

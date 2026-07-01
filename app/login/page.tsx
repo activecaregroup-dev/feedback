@@ -89,6 +89,7 @@ export default async function LoginPage({
             'use server';
             try {
               await signIn('credentials', {
+                username: formData.get('username'),
                 password: formData.get('password'),
                 redirectTo: '/dashboard',
               });
@@ -102,9 +103,22 @@ export default async function LoginPage({
           className="space-y-2"
         >
           <input
+            type="text"
+            name="username"
+            placeholder="Username"
+            autoComplete="username"
+            className="w-full rounded-lg px-4 py-3 text-sm outline-none transition-colors"
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: '#8a8a9a',
+            }}
+          />
+          <input
             type="password"
             name="password"
-            placeholder="Dev password"
+            placeholder="Password"
+            autoComplete="current-password"
             className="w-full rounded-lg px-4 py-3 text-sm outline-none transition-colors"
             style={{
               backgroundColor: 'rgba(255,255,255,0.04)',
@@ -121,7 +135,7 @@ export default async function LoginPage({
               color: '#8a8a9a',
             }}
           >
-            Dev login
+            Sign in
           </button>
         </form>
       </div>
